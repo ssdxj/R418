@@ -1,0 +1,38 @@
+Package: R418
+Type: Package
+Title: Self use R codes
+Version: 0.1.0
+Author: Li Wang
+Maintainer: The package maintainer <purewangli@gmail.com>
+Description: Self use R code. 
+License: GPL-3
+Encoding: UTF-8
+LazyData: TRUE
+Imports:
+    ggsci,
+    tidyverse,
+    hsdar,
+    caret,
+    tools,
+    scales,
+    parallel,
+    tibble,
+    MASS,
+    leaps,
+    minpack.lm,
+    randomForest,
+    kernlab,
+    pls,
+    psych,
+    tictoc,
+    ggpubr,
+    cowplot,
+    gridExtra,
+    lemon,
+    RColorBrewer,
+    viridis,
+    formattable,
+    kableExtra,
+    knitr,
+    prettydoc
+RoxygenNote: 6.1.1
