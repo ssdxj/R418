@@ -1,7 +1,3 @@
-# pls add on --------------------------------------------------------------
-
-## VIP returns all VIP values for all variables and all number of components,
-## as a ncomp x nvars matrix.
 pls_VIP <- function(object) {
   if (object$method != "oscorespls") {
     stop(

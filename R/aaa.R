@@ -12,6 +12,7 @@ library(kableExtra)
 library(ggpubr)
 library(ggsci)
 
+options(stringsAsFactors = FALSE)
 
 
 # common var --------------------------------------------------------------
@@ -78,27 +79,32 @@ themeDotplot <- function() {
 
 
 
-#' not in
-#'
-#' @param x x
-#' @param table vector
-#'
-#' @return vector
-#' @export
+
 `%not in%` <- function(x, table) {
   is.na(match(x, table, nomatch = NA_integer_))
 }
 
 
-#' df to html table using kable
-#'
-#' @param df data.frame
-#'
-#' @return html
-#' @export
 df2html <- function(df, digits) {
   df %>%
     mutate_if(is.numeric, round, digits) %>%
     kable(format = "html", digits = digits, escape = FALSE) %>%
     kable_styling(bootstrap_options = c("striped", "hover"))
 }
+
+
+# global vars -------------------------------------------------------------
+
+
+masks <- c(1350, 1460, 1790, 2000, 2400, 2510)
+masks_withoutSWIR <- c(1350, 1460, 1790, 2510)
+wl_breaks <- c(350, 470, 560, 680, 800, 1350, 1460, 1790, 2000, 2200, 2500)
+# wl_breaks <- c(1100, 1400, 1900, 2200)
+sen2_breaks <- c(490, 560, 665, 705, 740, 783, 842, 865, 945, 1610, 2190)
+`%not in%` <- Negate(`%in%`)
+n_sgolay <- 21
+
+PlotID_ynsd <- seq(1, 12) %>% str_pad(2, 'left', '0') %>% str_pad(3, 'left', 'P')
+
+
+

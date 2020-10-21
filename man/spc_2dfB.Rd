@@ -2,16 +2,16 @@
 % Please edit documentation in R/ulits4spc.R
 \name{spc_2dfB}
 \alias{spc_2dfB}
-\title{transform Speclib into data.frame (spectral columns name is in 'B_450' format)}
+\title{Speclib obj to wide df (reflect col with 'B_' prefix)}
 \usage{
 spc_2dfB(spc)
 }
 \arguments{
-\item{spc:}{'speclib' obj}
+\item{spc}{the Speclib obj}
 }
 \value{
-'data.frame' obj
+df (wide df)
 }
 \description{
-transform Speclib into data.frame (spectral columns name is in 'B_450' format)
+Speclib obj to wide df (reflect col with 'B_' prefix)
 }

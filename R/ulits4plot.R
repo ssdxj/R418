@@ -7,7 +7,7 @@
 #'
 #' @return ggplot
 #'
-spc_plot <- function(x, FUN = NULL) {
+spc_plot1 <- function(x, FUN = NULL) {
   # in case only 1 spectra
   if (nspectra(x) == 1) FUN <- 1
 
@@ -61,6 +61,33 @@ spc_plot <- function(x, FUN = NULL) {
   }
 
   return(p)
+}
+
+
+#' Speclib plot(all or selected PlotID)
+#'
+#' @param spc the Speclib object
+#' @param idCol characters, the colname of groups (ex. PlotID)
+#' @param idFilter vector of characters(c("P01", "P02"))
+#' @param ylims
+#'
+#' @return ggplot obj
+#' @export
+#'
+#' @examples
+spc_plot2 <- function(spc, idCol = 'PlotID',  idFilter = NULL, ylims = c(0, 0.8)){
+  input <- spc_2df_meltWithMask(spc)
+
+  if(!is.null(idFilter)) input <- dplyr::filter(input, .data[[idCol]] %in% idFilter)
+
+  ggplot(input) +
+    geom_line(aes_string(x = 'wl', y = 'reflect', group = idCol)) +
+    scale_y_continuous(name = 'Reflectance', breaks = pretty_breaks(n = 9),
+                       limits = ylims) +
+    scale_x_continuous(name = 'Wavelength(nm)', breaks = wl_breaks) +
+    theme(
+      legend.position = 'top'
+    )
 }
 
 

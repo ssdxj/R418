@@ -4,8 +4,16 @@
 \alias{raster_calc}
 \title{Hyperspectral raster calculation}
 \usage{
-raster_calc(fpath_in, fpath_out, wl, nbands, fun, format = "raster",
-  noData = -9999, ...)
+raster_calc(
+  fpath_in,
+  fpath_out,
+  wl,
+  nbands,
+  fun,
+  format = "raster",
+  noData = -9999,
+  ...
+)
 }
 \arguments{
 \item{fpath_in}{input raster file path(in ENVI format)}

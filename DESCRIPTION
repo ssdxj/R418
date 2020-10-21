@@ -35,4 +35,4 @@ Imports:
     kableExtra,
     knitr,
     prettydoc
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

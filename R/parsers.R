@@ -211,6 +211,7 @@ spc_from_sigs <- function(dat) {
   meta_list <- lapply(dat, function(x) {
     x[which(names(x) %not in% c("wl", "ref"))]
   })
+
   meta_df <- do.call(rbind.data.frame, meta_list)
 
   # create speclib
