@@ -418,3 +418,87 @@ spcdf_mask2NA <- function(input, mask = NA){
   return(input)
 
 }
+
+
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ssdxj_rededge <- function(x){
+  n_sgolay <- floor((25/mean(x@fwhm))/2)*2+1
+  if (n_sgolay < 5)
+    n_sgolay <- 5
+
+  D1 <- derivative.speclib(x,method="sgolay",m=1, n=n_sgolay)
+  D2 <- derivative.speclib(D1,method="sgolay",m=1, n=n_sgolay)
+
+  RedEdge_data <- as.data.frame(t(as.matrix(sapply(c(1:nspectra(x)),
+    FUN = ssdxj_rededge_apply, spectra(x), D1, D2), ncol = 6)))
+
+
+  row.names(RedEdge_data) <- idSpeclib(x)
+  names(RedEdge_data) <- c("R0","l0","Rp","lp","Rs","ls")
+
+  #  if (round)
+  #  {
+  #    RedEdge_data[,1] <- round(RedEdge_data[,1], 0)
+  #    RedEdge_data[,2] <- round(RedEdge_data[,2], 0)
+  #    RedEdge_data[,3] <- round(RedEdge_data[,3], 0)
+  #  }
+
+  return(as_tibble(RedEdge_data))
+}
+
+#' Title
+#'
+#' @param i
+#' @param x
+#' @param D1
+#' @param D2
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ssdxj_rededge_apply <- function(i, x, D1, D2) {
+  i <- i[1]
+
+  # l0: wavelength of the minimum reflectance in the red spectrum
+  # R0: reflectance at l0
+  tmp <- wavelength(D2) >= 660 & wavelength(D2) <= 700
+  R0 <- min(x[i,tmp],na.rm=TRUE)
+  l0 <- wavelength(D2)[tmp]
+  l0 <- l0[which.min(abs(R0 - x[i,tmp]))]
+
+
+  # lp: wavelength of the inflection point
+  # tmp <- wavelength(D2) >= 700 & wavelength(D3) <= 750
+  tmp <- wavelength(D2) >= 680 & wavelength(D2) <= 750
+  tmp2 <- spectra(D1)[i,]
+  tmp2[!tmp] <- -99999.9
+  lp <- which.max(tmp2) # index of max D1 in c(700, 750)
+  Rp <- x[i,lp]
+  lp <- wavelength(D2)[lp]
+
+  # ls: wavelength of the reflectance shoulder
+  tmp <- wavelength(D2) > lp & wavelength(D2) < 900 # wl length flag vector
+  tmp2 <- sign(spectra(D2)[i,tmp]) # d2 sign (1, 0, -1)
+  tmp3 <- tmp2[-c(1,2)]*tmp2[-c(length(tmp2)-1,length(tmp2))] # a(i) * a(i+2)
+  tmp3 <- c(FALSE,tmp3==-1,FALSE) # D2 sign of a(i) and a(i+2) are not equal IS TRUE
+  tmp4 <- wavelength(D2)[tmp]
+  tmp3 <- tmp4[tmp3]
+  ls <- tmp3[1]
+  if (is.finite(ls))
+  {
+    Rs <- x[i,wavelength(D2)==ls]
+  } else {
+    Rs <- NA
+  }
+  return(c(R0,l0,Rp,lp,Rs,ls))
+
+}
