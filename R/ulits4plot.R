@@ -80,11 +80,9 @@ spc_plot2 <- function(spc, idCol = 'PlotID',  idFilter = NULL, ylims = c(0, 0.8)
 
   if(!is.null(idFilter)) input <- dplyr::filter(input, .data[[idCol]] %in% idFilter)
 
-  input$group <- seq(1, nrow(input))
-
   ggplot(input) +
-    geom_line(aes_string(x = 'wl', y = 'reflect', group = 'group')) +
-    scale_y_continuous(name = 'Reflectance', breaks = scales::pretty_breaks(n = 9),
+    geom_line(aes_string(x = 'wl', y = 'reflect', group = idCol)) +
+    scale_y_continuous(name = 'Reflectance', breaks = pretty_breaks(n = 9),
                        limits = ylims) +
     scale_x_continuous(name = 'Wavelength(nm)', breaks = wl_breaks) +
     theme(
