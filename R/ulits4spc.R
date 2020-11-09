@@ -1,5 +1,4 @@
-
-
+# spc transform -----------------------------------------------------------
 
 #' ref to log(1/ref)
 #'
@@ -10,232 +9,16 @@
 #'
 #' @examples
 spc_2logReverse <- function(spc){
-
   ref <- spectra(spc)
   ref <- log(1/ref)
   spectra(spc) <- ref
   return(spc)
 }
 
-#' genearate Speclib obj from: csv file or data.frame
-#'
-#' @param input csv file or data.frame
-#' @param idCol colname of id col ("PlotID")
-#'
-#' @return Speclib obj
-#' @export
-#'
-#' @examples
-spc_generator <- function(input, idCol = 'PlotID') {
-  input_type <- class(input)
-  if (inherits(input, 'character'))
-    input <- read_csv(input)
-
-  if (inherits(input, 'data.frame')) {
-    df_meta <- dplyr::select(input, matches('^[[:alpha:]]')) %>%
-      mutate(ID = .data[[idCol]]) %>%
-      column_to_rownames('ID')
-
-    df_spectra <- dplyr::select(input, matches('^[[:digit:]]'))
-    wl <- names(df_spectra) %>% parse_number()
-
-    spc <- speclib(spectra = as.matrix(df_spectra), wavelength = wl)
-    SI(spc) <- df_meta
-
-    idSpeclib(spc) <- rownames(df_meta)
 
 
+# spc calc ----------------------------------------------------------------
 
-    return(spc)
-  } else{
-    msg = sprintf('Input error: %s !!!', input_save)
-    stop(msg)
-  }
-}
-
-
-#' spc or spc_df to long df
-#'
-#' @param input speclib obj or df
-#'
-#' @return df (long df with "wl" and "reflect" column)
-#' @export
-#'
-#' @examples
-spc_2df_melt <- function(input){
-
-  if (inherits(input, 'Speclib')) input <- spc_2df(input)
-
-  input %>%
-    pivot_longer(matches('^[[:digit:]]'), names_to = 'wl', values_to = 'reflect') %>%
-    mutate(wl = parse_number(wl))
-}
-
-
-#' spc to long df with masked bands as NA for ggplot
-#'
-#' @param spc
-#'
-#' @return df (long df with "wl" and "reflect" column)
-#' @export
-#'
-#' @examples
-spc_2df_meltWithMask <- function(spc){
-  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
-
-  df <- spc_2df_melt(spc)
-  masks_df <- mask(spc)
-
-  if (is.null(masks_df)) {
-    return (df )
-  } else {
-    wl <- df$wl
-    reflect <- df$reflect
-    for (i in 1:nrow(masks_df)) {
-      reflect[wl >= masks_df$lb[i] & wl <=masks_df$ub[i] ] <- NA
-    }
-
-    df$reflect <- reflect
-    return(df)
-  }
-}
-
-
-#' spc bandwise cor
-#'
-#' @param spc the speclib object
-#' @param yname meta colname
-#'
-#' @return df data.frame with colnames c(wl, colLabel)
-#' @export
-#'
-#' @examples
-spc_bandwiseCor <- function(spc, yname, colLabel){
-  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
-
-  spc_2df_meltWithMask(spc) %>%
-    as_tibble() %>%
-    dplyr::select(one_of(c(yname, 'wl', 'reflect'))) %>%
-    # drop_na(reflect) %>%
-    drop_na(.data[[yname]]) %>%
-    group_by(wl) %>%
-    summarise(!!(colLabel) := cor(.data[[yname]], .data$reflect, use = 'na.or.complete'),
-              .groups = 'drop')
-}
-
-
-
-#' spc average
-#'
-#' @param spc
-#'
-#' @return
-#' @export
-#'
-#' @examples
-spc_reduceRepID <- function(spc){
-  spc_2df_melt(spc) %>%
-    group_by(FieldID, SampleDate, PlotID, SampleID, wl) %>%
-    summarise(reflect = mean(reflect), .groups = 'drop') %>%
-    pivot_wider(names_from = wl, values_from = reflect) %>%
-    spc_fromDf()
-}
-
-
-
-
-
-
-#' Speclib obj to wide df
-#'
-#' @param spc the Speclib obj
-#'
-#' @return df (wide df)
-#' @export
-#'
-#' @examples
-spc_2df <- function(spc) {
-  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
-  df_meta <- SI(spc)
-  df_spectra <- spectra(spc)
-  colnames(df_spectra) <- wavelength(spc)
-  df_spectra <- as_tibble(df_spectra)
-
-  as_tibble(cbind(df_meta, df_spectra, stringsAsFactors = FALSE), .name_repaire = 'minimal')
-
-}
-
-#' Speclib obj to wide df (reflect col with 'B_' prefix)
-#'
-#' @param spc the Speclib obj
-#'
-#' @return df (wide df)
-#' @export
-#'
-#' @examples
-spc_2dfB <- function(spc){
-  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
-  df_meta <- SI(spc)
-  df_spectra <- spectra(spc)
-  colnames(df_spectra) <- paste('B', wavelength(spc), sep = '_')
-  df_spectra <- as_tibble(df_spectra)
-
-  as_tibble(cbind(df_meta, df_spectra), .name_repaire = 'minimal')
-}
-
-
-spc_2df4plot <- function(spc) {
-  out <- NULL
-  attri <- SI(spc)
-  ref <- spectra(spc)
-
-  # incase no attri
-  if (ncol(attri) == 0) {
-    out <- as_tibble(ref)
-  } else {
-    out <- as_tibble(cbind(attri, ref))
-  }
-
-  # handle colnames
-  names(out) <- c(names(attri), hsdar::wavelength(spc))
-
-  masked <- mask(spc)
-  if(!is.null(maskVector)){
-    for(rows in 1:nrow(masked)){
-      lb <- masked$lb[rows]
-      ub <- masked$ub[rows]
-
-      NA_wl <- seq(lb+1, ub-1, by = spc@fwhm)
-      names(NA_wl) <- NA_wl
-      NA_ref <- map_df(NA_wl, ~rep(NA, times = nspectra(spc)))
-      out <- c(out, NA_ref)
-    }
-  }
-
-  return(out)
-}
-
-
-#' generate 'Speclib' obj from data.frame, reflectance selected by matches
-#' colnames matches('^(\\d)+(\\.\\d+)?$'),wl determined by colnames of spectral data
-#'
-#' @param df data.frame of data
-#' @param bands_reg with default '^(\\d)+(\\.\\d+)?$'
-#'
-#' @return Speclib obj
-#' @export
-spc_fromDf <- function(df, bands_reg = "^(\\d)+(\\.\\d+)?$") {
-  # do select
-  spectra <- dplyr::select(df, matches(bands_reg))
-  attri <- dplyr::select(df, -matches(bands_reg)) %>% data.frame()
-
-  # handle spc
-  wl <- as.double(names(spectra))
-  spc <- speclib(as.matrix(spectra), wl)
-  SI(spc) <- as.data.frame(attri)
-
-  return(spc)
-}
 
 
 #' rbind spc
@@ -253,6 +36,7 @@ spc_rbind <- function(...) {
 
   if (wl_check) {
     spc_df_list <- map(spc_list, spc_2df)
+    options(stringsAsFactors = FALSE)
     spc_df <- do.call(rbind, spc_df_list)
     out <- spc_fromDf(spc_df)
     return(out)
@@ -260,36 +44,6 @@ spc_rbind <- function(...) {
     stop("wavelength not match, stop!!")
   }
 }
-
-
-#' get inTrain spc by index vector
-#'
-#' @param spc: spc to be filtered
-#' @param inTrain: inTrain index vector
-#'
-#' @return spc obj
-#' @export
-#'
-spc_inTrain <- function(spc, inTrain) {
-  spc_fromDf(spc_2df(spc)[inTrain, ])
-}
-
-#' melt the reflectance part of spc df
-#'
-#' @param x spc or spc_df
-#' @param band_reg with default '^(\\d)+(\\.\\d+)?$'
-#'
-#' @return tibble
-#' @export
-#'
-spc_melt <- function(x, band_reg = "^(\\d)+(\\.\\d+)?$") {
-  if (is.speclib(x)) x <- spc_2df(x)
-
-  x %>%
-    gather(key = "wl", value = "reflect", matches(band_reg), convert = TRUE) %>%
-    as_tibble()
-}
-
 
 #' Self use function. Average spc SampleID or PlotID or Treatment.
 #'
@@ -328,14 +82,14 @@ spc_ave <- function(spc, by = "SampleID") {
       summarise(
         longitude = mean(longitude, na.rm = TRUE),
         latitude = mean(latitude, na.rm = TRUE),
-        reflect = mean(reflect, na.rm = TRUE)
+        reflect = mean(reflect, na.rm = TRUE),
+        .groups = 'drop'
       ) %>%
       ungroup() %>%
       spread(wl, reflect)
   } else {
     out <- out %>%
-      summarise(reflect = mean(reflect, na.rm = TRUE)) %>%
-      ungroup() %>%
+      summarise(reflect = mean(reflect, na.rm = TRUE), .groups = 'drop') %>%
       spread(wl, reflect)
   }
 
@@ -344,81 +98,174 @@ spc_ave <- function(spc, by = "SampleID") {
 }
 
 
-#' Bandwise cor with responser
+
+# spc from/to df ----------------------------------------------------------
+
+#' genearate Speclib obj from: csv file or data.frame
 #'
-#' @param spc  spc
-#' @param biochemphy name of responsor in SI
+#' @param input csv file or data.frame
+#' @param idCol colname of id col ("PlotID")
 #'
-#' @return df with col ('wl', 'estimate', 'p.value')
+#' @return Speclib obj
 #' @export
-spc_cor <- function(spc, biochemphy) {
-  ref <- spectra(spc)
-  wl <- wavelength(spc)
-  colnames(ref) <- wl
-  reps <- SI(spc)[[biochemphy]]
-
-  apply(ref, 2, cor.test, reps, na.rm = TRUE) %>%
-    map_df(function(fit){fit[c('estimate', 'p.value')]}, .id = 'wl') %>%
-    mutate(wl = parse_double(wl))
-}
-
-
-#' wrapper of \code{\link{spc_cor}} doing bandwise band cor with responser
-#' grouped by stage
 #'
-#' @param stageValue levels of stage in SI
-#' @param spc spc
-#' @param biochemphy name of reponser in SI
-#'
-#' @return df
-#' @export
-spc_cor_stage <- function(stageValue, spc, biochemphy) {
-  if (stageValue == "full") {
-    spc_cor(spc, biochemphy)
-  } else {
-    # incase no records for specific growth stage
-    df <- spc_2df(spc) %>% dplyr::filter(stage %in% stageValue)
+#' @examples
+spc_generator <- function(input, idCol = 'PlotID') {
+  input_type <- class(input)
+  if (inherits(input, 'character'))
+    input <- read_csv(input)
 
-    # if so return NULL
-    if(nrow(df) == 0) return(NULL)
+  if (inherits(input, 'data.frame')) {
+    df_meta <- dplyr::select(input, matches('^[[:alpha:]]')) %>%
+      mutate(ID = .data[[idCol]]) %>%
+      column_to_rownames('ID')
 
-    # else
-    spc_cor(spc_fromDf(df), biochemphy)
+    df_spectra <- dplyr::select(input, matches('^[[:digit:]]'))
+    wl <- names(df_spectra) %>% parse_number()
+
+    spc <- speclib(spectra = as.matrix(df_spectra), wavelength = wl)
+    SI(spc) <- df_meta
+
+    idSpeclib(spc) <- rownames(df_meta)
+
+    return(spc)
+  } else{
+    msg <- sprintf('Input error: %s !!!', input_type)
+    stop(msg)
   }
 }
 
-
-#'  change the reflectance of masked bands to NA
+#' generate 'Speclib' obj from data.frame, reflectance selected by matches
+#' colnames matches('^(\\d)+(\\.\\d+)?$'),wl determined by colnames of spectral data
 #'
-#' @param input spc or melt spc_df
-#' @param mask  NA or vector
+#' @param df data.frame of data
+#' @param bands_reg with default '^(\\d)+(\\.\\d+)?$'
 #'
-#' @return df
+#' @return Speclib obj
 #' @export
-spcdf_mask2NA <- function(input, mask = NA){
-  if(inherits(input, 'Speclib')) input <- spc_melt(input)
+spc_fromDf <- function(df, bands_reg = "^(\\d)+(\\.\\d+)?$") {
+  # do select
+  df_spectra <- dplyr::select(df, matches(bands_reg))
+  df_meta <- dplyr::select(df, -matches(bands_reg))
+  wl <- parse_double(names(df_spectra))
 
-  # band within mask change to NA
-  # thus can be easily handled by ggplot2
-  while(length(mask) >= 2){
-    lower <- mask[1]
-    upper <- mask[2]
-    mask <- mask[c(-1, -2)]
+  # handle spc
+  spc <- speclib(as.matrix(df_spectra), wl)
+  SI(spc) <- as.data.frame(df_meta)
 
-    # help function to use mutate
-    foo <- function(wl, reflect, lower, upper){
-      flag <- wl >= lower & wl <= upper
-      reflect[flag] <- NA
-      return(reflect)
+  return(spc)
+}
+
+
+
+#' Speclib obj to wide df
+#'
+#' @param spc the Speclib obj
+#'
+#' @return df (wide df)
+#' @export
+#'
+#' @examples
+spc_2df <- function(spc) {
+  if(inherits(spc, 'data.frame')) return(spc)
+  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
+
+  df_meta <- SI(spc)
+  df_spectra <- spectra(spc)
+
+  colnames(df_spectra) <- wavelength(spc)
+  df_spectra <- as_tibble(df_spectra)
+
+  bind_cols(df_meta, df_spectra) %>% as_tibble()
+}
+
+
+spc_2df_withMask <- function(spc){
+  if (inherits(spc, 'data.frame')) return(spc)
+  df <- spc_2df(spc)
+
+  masks <- mask(spc)
+  if(!is.null(masks)){
+    wl_missing <- c()
+    # geneate the wavelength to fill in by step of 5nm
+    for(i in 1:nrow(masks)){
+      wl_missing <- c(wl_missing, seq(masks$lb[i]+1,masks$ub[i]-1, by = 5))
     }
-
-    input <- mutate(input, reflect = foo(wl, reflect, lower, upper))
+    # add NA to the df
+    for(band in wl_missing){
+      df[[as.character(band)]] <- NA
+    }
   }
 
-  return(input)
+  return(df)
+}
+
+#' Speclib obj to wide df (reflect col with 'B_' prefix)
+#'
+#' @param spc the Speclib obj
+#'
+#' @return df (wide df)
+#' @export
+#'
+#' @examples
+spc_2dfB <- function(spc){
+  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
+  df_meta <- SI(spc)
+  df_spectra <- spectra(spc)
+  colnames(df_spectra) <- paste('B', wavelength(spc), sep = '_')
+  df_spectra <- as_tibble(df_spectra)
+
+  bind_cols(df_meta, df_spectra) %>% as_tibble()
 
 }
 
+
+
+#' spc or spc_df to long df
+#'
+#' @param input speclib obj or df
+#'
+#' @return df (long df with "wl" and "reflect" column)
+#' @export
+#'
+#' @examples
+spc_melt <- function(input){
+  if (inherits(input, 'Speclib')) input <- spc_2df(input)
+  input %>%
+    mutate(.ID = 1:nrow(.)) %>%
+    pivot_longer(matches('^[[:digit:]]'), names_to = 'wl', values_to = 'reflect') %>%
+    mutate(wl = parse_number(wl))
+}
+
+
+
+# spc cor -----------------------------------------------------------------
+
+#' spc bandwise cor
+#'
+#' @param spc the speclib object
+#' @param yname meta colname
+#'
+#' @return df data.frame with colnames c(wl, colLabel)
+#' @export
+#'
+#' @examples
+spc_bandwiseCor <- function(spc, yname, colLabel){
+  if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
+
+  spc_2df_meltWithMask(spc) %>%
+    as_tibble() %>%
+    dplyr::select(one_of(c(yname, 'wl', 'reflect'))) %>%
+    # drop_na(reflect) %>%
+    drop_na(.data[[yname]]) %>%
+    group_by(wl) %>%
+    summarise(!!(colLabel) := cor(.data[[yname]], .data$reflect, use = 'na.or.complete'),
+              .groups = 'drop')
+}
+
+
+
+# vegindex addon ----------------------------------------------------------
 
 
 #' Title
@@ -438,7 +285,7 @@ ssdxj_rededge <- function(x){
   D2 <- derivative.speclib(D1,method="sgolay",m=1, n=n_sgolay)
 
   RedEdge_data <- as.data.frame(t(as.matrix(sapply(c(1:nspectra(x)),
-    FUN = ssdxj_rededge_apply, spectra(x), D1, D2), ncol = 6)))
+                                                   FUN = ssdxj_rededge_apply, spectra(x), D1, D2), ncol = 6)))
 
 
   row.names(RedEdge_data) <- idSpeclib(x)
@@ -502,3 +349,44 @@ ssdxj_rededge_apply <- function(i, x, D1, D2) {
   return(c(R0,l0,Rp,lp,Rs,ls))
 
 }
+
+
+# depresed ----------------------------------------------------------------
+
+# spc_2df4plot <- function(spc) {
+#   out <- NULL
+#   attri <- SI(spc)
+#   ref <- spectra(spc)
+#
+#   # incase no attri
+#   if (ncol(attri) == 0) {
+#     out <- as_tibble(ref)
+#   } else {
+#     out <- as_tibble(cbind(attri, ref))
+#   }
+#
+#   # handle colnames
+#   names(out) <- c(names(attri), hsdar::wavelength(spc))
+#
+#   masked <- mask(spc)
+#   if(!is.null(maskVector)){
+#     for(rows in 1:nrow(masked)){
+#       lb <- masked$lb[rows]
+#       ub <- masked$ub[rows]
+#
+#       NA_wl <- seq(lb+1, ub-1, by = spc@fwhm)
+#       names(NA_wl) <- NA_wl
+#       NA_ref <- map_df(NA_wl, ~rep(NA, times = nspectra(spc)))
+#       out <- c(out, NA_ref)
+#     }
+#   }
+#
+#   return(out)
+# }
+
+
+
+
+
+
+

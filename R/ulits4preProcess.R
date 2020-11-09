@@ -2,7 +2,7 @@
 #'
 #' @param df data.frame (with A665, A649, A470, vol, area and mass column)
 #'
-#' @return modified df
+#' @return original df with additional columns: LCC and LCD
 #' @export
 #'
 calc_Chl <- function(df){
@@ -11,7 +11,7 @@ calc_Chl <- function(df){
 
   A664 <- df$A665
   A649 <- df$A649
-  A470 <- df$A470
+  # A470 <- df$A470
   vol <- df$vol
   area <- df$area
   mass <- df$mass
@@ -22,20 +22,20 @@ calc_Chl <- function(df){
   # Chlxc_solu <- ((1000*A470) - (2.13*Chla_solu) - (97.63*Chlb_solu))/209
 
   # content in solution (mg/L)
-  Chla_solu <- (13.95*A664)-(6.88*A649)
+  Chla_solu <- (13.95*A664) - (6.88*A649)
   Chlb_solu <- (24.96*A649) - (7.32*A664)
-  Chlxc_solu <- ((1000*A470) - (2.05*Chla_solu) - (114.8*Chlb_solu))/245
+  # Chlxc_solu <- ((1000*A470) - (2.05*Chla_solu) - (114.8*Chlb_solu))/245
 
 
   # ug/cm^2
   Chla_area <- Chla_solu * vol / area * 1000
   Chlb_area <- Chlb_solu * vol / area * 1000
-  Chlxc_area <- Chlxc_solu * vol / area * 1000
+  # Chlxc_area <- Chlxc_solu * vol / area * 1000
 
   # mg/g
   Chla_mass <- Chla_solu * vol / mass
   Chlb_mass <- Chlb_solu * vol / mass
-  Chlxc_mass <- Chlxc_solu * vol / mass
+  # Chlxc_mass <- Chlxc_solu * vol / mass
 
   df$LCC <- Chla_area + Chlb_area
   df$LCD <- Chla_mass + Chlb_mass

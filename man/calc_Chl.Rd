@@ -10,7 +10,7 @@ calc_Chl(df)
 \item{df}{data.frame (with A665, A649, A470, vol, area and mass column)}
 }
 \value{
-modified df
+original df with additional columns: LCC and LCD
 }
 \description{
 wet Chl calc

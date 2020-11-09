@@ -2,18 +2,16 @@
 % Please edit documentation in R/ulits4spc.R
 \name{spc_melt}
 \alias{spc_melt}
-\title{melt the reflectance part of spc df}
+\title{spc or spc_df to long df}
 \usage{
-spc_melt(x, band_reg = "^(\\\\d)+(\\\\.\\\\d+)?$")
+spc_melt(input)
 }
 \arguments{
-\item{x}{spc or spc_df}
-
-\item{band_reg}{with default '^(\\d)+(\\.\\d+)?$'}
+\item{input}{speclib obj or df}
 }
 \value{
-tibble
+df (long df with "wl" and "reflect" column)
 }
 \description{
-melt the reflectance part of spc df
+spc or spc_df to long df
 }

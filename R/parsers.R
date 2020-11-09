@@ -42,7 +42,7 @@ parser_ForceA <- function(fpath) {
 #' @export
 parser_sunScan <- function(fpath) {
   # read
-  data <- readLines(fPath)
+  data <- readLines(fpath)
 
   # parse
   data_sub <- grep("^\\d{2}:\\d{2}:\\d{2}\\t\\d{1,2}", data, value = TRUE)
