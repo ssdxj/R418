@@ -410,6 +410,9 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
   Dp <- map2_dbl(as.data.frame(t(spectra(D1))), lp, ~.x[.y])
   lp <- wavelength(spc)[lp]
 
+  names(Rp) <- NULL
+  names(Dp) <- NULL
+
   return(list(Rp = Rp, lp = lp, Dp = Dp))
 }
 
