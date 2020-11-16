@@ -15,7 +15,7 @@ spc_plot_filters <- function(spc, by, alpha = 1){
   df <- spc_2df_withMask(spc)
 
   if(is.data.frame(by)){
-    df_filtered <- dplyr::left_join(filters, df)
+    df_filtered <- dplyr::left_join(by, df)
   } else if(is.vector(by) & (is.numeric(by) | is.logical(by))){
     df_filtered <- df[by,]
   } else {

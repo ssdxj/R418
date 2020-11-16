@@ -148,6 +148,13 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     # rededge -----------------------------------------------------------------
   } else if(index %in% c('l0', 'lp', 'ls', 'R0', 'Rp', 'Rs')){
     out <- rededge(spc)[[index]]
+  } else if(index  == 'REP_main'){
+    out <- .calc_REP_sg(spc)$lp
+  } else if(index == 'REP_main_R'){
+    out <- .calc_REP_sg(spc)$Rp
+  } else if(index == 'REP_main_D'){
+    out <- .calc_REP_sg(spc)$Dp
+
   } else if(index %in% c('REP_gaussian', 'mREIP')){
     # MILLER, J. R., E. W. HARE, and J. WU. 1990. “Quantitative Characterization of the Vegetation Red Edge Reflectance 1. An Inverted-Gaussian Reflectance Model.” International Journal of Remote Sensing 11 (10): 1755–73. https://doi.org/10.1080/01431169008955128.
     out <- .calc_mREIP(spc)
@@ -389,58 +396,22 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
 }
 
 
-.calc_REP_sg <- function(spc, n = 21, masks = c(300, 680, 720, 2600)){
-  spcD2 <- derivative.speclib(spc, m = 2, method = 'sgolay', n = n)
-  mask(spcD2) <- masks
-  wl <- wavelength(spcD2)
-  spec <- spectra(spcD2)
-  spec_abs <- abs(spec)
-  REP_index <- apply(spec_abs, 1, which.min)
-  REP <- wl[REP_index]
 
-  REP[REP >= masks[3] | REP <= masks[2]] <- NA
+.calc_REP_sg <- function(spc){
+  n_sgolay <- floor((25/mean(spc@fwhm))/2)*2+1
+  if (n_sgolay < 5) n_sgolay <- 5
+  D1 <- derivative.speclib(spc, m = 1, method = 'sgolay', n = n_sgolay)
 
-  return(REP)
+  flag_region <- wavelength(spc) >= 680 & wavelength(spc) <= 780
+  spec <- spectra(D1)
+  spec[,!flag_region] <- -99999.9
+  lp <- apply(spec, 1, which.max)
+  Rp <- map2_dbl(as.data.frame(t(spectra(spc))), lp, ~.x[.y])
+  Dp <- map2_dbl(as.data.frame(t(spectra(D1))), lp, ~.x[.y])
+  lp <- wavelength(spc)[lp]
+
+  return(list(Rp = Rp, lp = lp, Dp = Dp))
 }
 
 
-.calc_REP_ref_sg <- function(spc, n = 21, masks = c(300, 680, 720, 2600)){
-  mask(spc) <- masks # not needed
-  wl <- wavelength(spc)
-  spec <- spectra(spc)
-  nspec <- nrow(spec)
-
-
-  # calc REP
-  REP <- .calc_REP_sg(spc, n, masks)
-
-
-  # cheap check
-  if(length(wl) != ncol(spec)) stop('hsdar error!!!')
-  if(length(REP) != nspec) stop('error!!!')
-
-  # -9999 for outliers
-  out <- rep(-9999, times = n)
-  for(i in 1:nspec){
-    pos <- REP[i]
-    if(!is.na(pos)){
-      out[i] <- spec[i,wl==pos]
-    }
-  }
-
-  return(out)
-
-
-  #################test#############################
-  # i <- 53
-  # # the REP
-  # REP[i]
-  # # the Reflectance at REP
-  # get_reflectance(spc, REP[i])[i]
-  # # the calculated reflectance
-  # out[i]
-
-
-
-}
 
