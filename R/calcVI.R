@@ -32,9 +32,9 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     # He, Li, Craig A. Coburn, Zhi-Jie Wang, Wei Feng, and Tian-Cai Guo. 2018. “Reduced Prediction Saturation and View Effects for Estimating the Leaf Area Index of Winter Wheat.” IEEE Transactions on Geoscience and Remote Sensing, 1–16. https://doi.org/10.1109/TGRS.2018.2868138.
     out <- (1+(nir-red))/(1-(nir-red))
 
-  } else if(index == 'Green NDVI'){
+  } else if(index == 'Green_NDVI'){
     # Gitelson, Anatoly A., Yoram J. Kaufman, and Mark N. Merzlyak. 1996. “Use of a Green Channel in Remote Sensing of Global Vegetation from EOS-MODIS.” Remote Sensing of Environment 58 (3): 289–98. https://doi.org/10.1016/S0034-4257(96)00072-7.
-    out <- vegindex(spc, index)
+    out <- vegindex(spc, 'Green NDVI')
 
 
     # soil adjust -------------------------------------------------------------
@@ -47,9 +47,8 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     out <- vegindex(spc, index)
 
     # CI ----------------------------------------------------------------------
-  } else if(index == 'CI_redegde1'){
-    # Gitelson, Anatoly A, Andrés Viña, Timothy J Arkebauer, Donald C. Rundquist, Galina Keydan, and Bryan Leavitt. 2003. “Remote Estimation of Leaf Area Index and Green Leaf Biomass in Maize Canopies.” Geophysical Research Letters 30 (5): n/a-n/a. https://doi.org/10.1029/2002GL016450.
-    # Gitelson, Anatoly a, Yuri Gritz, and Mark N Merzlyak. 2003. “Relationships between Leaf Chlorophyll Content and Spectral Reflectance and Algorithms for Non-Destructive Chlorophyll Assessment in Higher Plant Leaves.” Journal of Plant Physiology 160 (3): 271–82. https://doi.org/10.1078/0176-1617-00887.
+  } else if(index == 'CI_rededge'){
+
     out <- vegindex(spc, 'CI2')
 
   } else if(index == 'CI_green'){
@@ -65,7 +64,7 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     out <- nir / re - 1
 
 
-    # Sims and Gamon (2002) ---------------------------------------------------
+    # Sims and Gamon (2002)
   } else if(index %in% c('mSR', 'mSR705','mNDVI', 'mND705')){
     # Sims, Daniel A., and John A. Gamon. 2002. “Relationships between Leaf Pigment Content and Spectral Reflectance across a Wide Range of Species, Leaf Structures and Developmental Stages.” Remote Sensing of Environment 81 (2–3): 337–54. https://doi.org/10.1016/S0034-4257(02)00010-X.
     out <- vegindex(spc, index)
@@ -148,16 +147,18 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     # rededge -----------------------------------------------------------------
   } else if(index %in% c('l0', 'lp', 'ls', 'R0', 'Rp', 'Rs')){
     out <- rededge(spc)[[index]]
-  } else if(index  == 'REP_main'){
+  } else if(index  ==  'REP_lp'){
     out <- .calc_REP_sg(spc)$lp
-  } else if(index == 'REP_main_R'){
+  } else if(index == 'REP_Rp'){
     out <- .calc_REP_sg(spc)$Rp
-  } else if(index == 'REP_main_D'){
+  } else if(index == 'REP_Dp'){
     out <- .calc_REP_sg(spc)$Dp
 
   } else if(index %in% c('REP_gaussian', 'mREIP')){
     # MILLER, J. R., E. W. HARE, and J. WU. 1990. “Quantitative Characterization of the Vegetation Red Edge Reflectance 1. An Inverted-Gaussian Reflectance Model.” International Journal of Remote Sensing 11 (10): 1755–73. https://doi.org/10.1080/01431169008955128.
     out <- .calc_mREIP(spc)
+  } else if(index %in% c('REP_Li' ,'REP_LE')){
+    out <- vegindex(spc, index)
   } else if(index == 'MTCI'){
     out <- vegindex(spc, index)
 
@@ -169,17 +170,6 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     r740 <- get_reflectance(spc, 740)
 
     out <- (r783-r665)/(r705/r740)
-
-  } else if(index == 'S2REP'){
-    # Frampton2013
-    r783 <- get_reflectance(spc, 783)
-    r665 <- get_reflectance(spc, 665)
-    r705 <- get_reflectance(spc, 705)
-    r740 <- get_reflectance(spc, 740)
-
-    out <- 705 + 35*(((r783+r665)/2)-r705)/(r740-r705)
-  } else if(index %in% c('mREIP', 'REP_Li', 'REP_LE')){
-    out <- vegindex(spc, index)
 
   } else if(index == 'S2REP'){
     # Frampton, William James, Jadunandan Dash, Gary Watmough, and Edward James Milton. 2013. “Evaluating the Capabilities of Sentinel-2 for Quantitative Estimation of Biophysical Variables in Vegetation.” ISPRS Journal of Photogrammetry and Remote Sensing 82 (August): 83–92. https://doi.org/10.1016/j.isprsjprs.2013.04.007.
@@ -202,6 +192,7 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
 
     # LbyL --------------------------------------------------------------------
   } else if(index == 'NDVI_Delegido2013'){
+    # Delegido, J., Verrelst, J., Meza, C. M. M., Rivera, J. P. P., Alonso, L., & Moreno, J. (2013). A red-edge spectral index for remote sensing estimation of green LAI over agroecosystems. European Journal of Agronomy, 46, 42–52. https://doi.org/10.1016/j.eja.2012.12.001
     out <- ssdxj_vegindex('NDVI_712_674', spc)
 
 
@@ -239,8 +230,7 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
 
     # others ------------------------------------------------------------------
   } else if(index == 'VNAI'){
-    # Chl, YueJB2020
-    # 10.1186/s13007-020-00643-z
+    # Yue, J., Feng, H., Tian, Q., & Zhou, C. (2020). A robust spectral angle index for remotely assessing soybean canopy chlorophyll content in different growing stages. Plant Methods, 16(1), 104. https://doi.org/10.1186/s13007-020-00643-z
     out <- .calc_VNAI(spc)
 
   } else if(index == 'DANIR'){
@@ -248,7 +238,8 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     out <- .calc_DANIR(spc)
 
   } else if(index == 'NAOC'){
-    # Chl Delegido2010
+    # Delegido, J., Alonso, L., González, G., & Moreno, J. (2010). Estimating chlorophyll content of crops from hyperspectral data using a normalized area over reflectance curve (NAOC). International Journal of Applied Earth Observation and Geoinformation, 12(3), 165–174. https://doi.org/10.1016/j.jag.2010.02.003
+
     out <- .calc_NAOC(spc)
 
 
@@ -357,6 +348,8 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
 
 
 .calc_mREIP <- function(spc){
+
+# the hsdar::vegindex(spc, 'mREIP') DO NOT add sigma
 
   spec <- spectra(spc)
   wl <- wavelength(spc)
