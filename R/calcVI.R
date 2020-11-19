@@ -32,7 +32,7 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     # He, Li, Craig A. Coburn, Zhi-Jie Wang, Wei Feng, and Tian-Cai Guo. 2018. “Reduced Prediction Saturation and View Effects for Estimating the Leaf Area Index of Winter Wheat.” IEEE Transactions on Geoscience and Remote Sensing, 1–16. https://doi.org/10.1109/TGRS.2018.2868138.
     out <- (1+(nir-red))/(1-(nir-red))
 
-  } else if(index == 'Green_NDVI'){
+  } else if(index %in% c('Green_NDVI', 'Green NDVI')){
     # Gitelson, Anatoly A., Yoram J. Kaufman, and Mark N. Merzlyak. 1996. “Use of a Green Channel in Remote Sensing of Global Vegetation from EOS-MODIS.” Remote Sensing of Environment 58 (3): 289–98. https://doi.org/10.1016/S0034-4257(96)00072-7.
     out <- vegindex(spc, 'Green NDVI')
 
@@ -153,7 +153,8 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     out <- .calc_REP_sg(spc)$Rp
   } else if(index == 'REP_Dp'){
     out <- .calc_REP_sg(spc)$Dp
-
+  } else if(index == 'REP_multi'){
+    out <-.calc_REP_multi(spc)
   } else if(index %in% c('REP_gaussian', 'mREIP')){
     # MILLER, J. R., E. W. HARE, and J. WU. 1990. “Quantitative Characterization of the Vegetation Red Edge Reflectance 1. An Inverted-Gaussian Reflectance Model.” International Journal of Remote Sensing 11 (10): 1755–73. https://doi.org/10.1080/01431169008955128.
     out <- .calc_mREIP(spc)
@@ -409,5 +410,66 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
   return(list(Rp = Rp, lp = lp, Dp = Dp))
 }
 
+
+
+.calc_REP_multi <- function(spc){
+  wl <- wavelength(spc)
+  wl_sub_flag <- wl >= 680 & wl <= 750
+  wl_sub <- wl[wl_sub_flag]
+  n <- length(wl_sub)
+  Raw_spec <- spectra(spc)[,wl_sub_flag]
+  D1_spec <- spectra(derivative.speclib(spc, m = 1,
+                                        method = 'sgolay', n = 21))[,wl_sub_flag]
+  D2_spec <- spectra(derivative.speclib(spc, m = 2,
+                                        method = 'sgolay', n = 21))[,wl_sub_flag]
+
+  .REP_multi_apply <- function(i, n, wl_sub, Raw_spec, D1_spec, D2_spec){
+    # incase
+    i <- i[1]
+    lp <- c()
+    Rp <- c()
+    Dp <- c()
+
+    for(j in 3:(n-2)){
+      if(D2_spec[i, j-2] > 0 &
+         D2_spec[i, j-1] > 0 &
+         D2_spec[i, j+1] <= 0 &
+         D2_spec[i, j+2] <= 0){
+
+        lp <- c(lp, wl_sub[j])
+        Rp <- c(Rp, Raw_spec[i,j])
+        Dp <- c(Dp, D1_spec[i,j])
+
+        D2_spec[i, 1:j] <- -9999 # to exclude the j+1 channel
+      }
+    }
+
+    if(length(lp) < 1){
+      lp <- NA
+      Rp <- NA
+      Dp <- NA
+    }
+
+    # if(length(lp == 1)){
+    #   lp <- c(lp, NA)
+    #   Rp <- c(Rp, NA)
+    #   Dp <- c(Dp, NA)
+    # }
+
+    if(length(lp) > 2) {
+      print(i)
+      print(lp)
+      print('more than 2 lp are founded!!!')
+    }
+
+    c(lp1 = lp[1], lp2 = lp[2], Rp1 = Rp[1], Rp2 = Rp[2], Dp1 = Dp[1], Dp2 = Dp[2])
+
+  }
+
+  ids <- 1:nspectra(spc1nm)
+  names(ids) <- ids
+
+  map_df(ids, .REP_multi_apply, n, wl_sub, Raw_spec, D1_spec, D2_spec)
+}
 
 

@@ -13,6 +13,13 @@ spec_svm <- svm_rbf(cost = tune(),
   set_engine('kernlab') %>%
   set_mode('regression')
 
+### define model: pls
+spec_pls <- pls(num_comp = tune(),
+                predictor_prop = tune()) %>%
+  set_engine("mixOmics") %>%
+  set_mode("regression")
+
+
 
 # ML routine --------------------------------------------------------------
 
