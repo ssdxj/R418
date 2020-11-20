@@ -1,23 +1,43 @@
 # model spec --------------------------------------------------------------
 
-
 ## define model: randomForest
-spec_rf <- rand_forest(mtry = tune(),  trees = 500,  min_n = tune()) %>%
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_rf <- function(){
+  rand_forest(mtry = tune(),  trees = 500,  min_n = tune()) %>%
   set_engine('ranger') %>%
   set_mode('regression')
+}
 
 ### define model: support vector machine
-spec_svm <- svm_rbf(cost = tune(),
-                    rbf_sigma = tune(),
-                    margin = tune()) %>%
-  set_engine('kernlab') %>%
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_svm <- function(){
+  svm_rbf(cost = tune(), rbf_sigma = tune(), margin = tune()) %>%
+  set_engine('liquidSVM') %>%
   set_mode('regression')
+}
 
 ### define model: pls
-spec_pls <- pls(num_comp = tune(),
-                predictor_prop = tune()) %>%
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_pls <- function(){
+  pls(num_comp = tune(), predictor_prop = tune()) %>%
   set_engine("mixOmics") %>%
   set_mode("regression")
+}
 
 
 
@@ -34,54 +54,51 @@ spec_pls <- pls(num_comp = tune(),
 #' @return   list(cv, df_training, df_testing, df_metrics)
 #' @export
 #' @examples
-tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds){
+tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds, grid = 20){
 
   ## define workflow
-  rf_wf <- workflow() %>%
+  ML_wf <- workflow() %>%
     add_recipe(rec) %>%
     add_model(spec)
 
   ## cross-validaiotn
   registerDoParallel(detectCores())
-  rf_cv <- tune_grid(
-    rf_wf,
+  ML_cv <- tune_grid(
+    ML_wf,
     resamples = df_folds,
-    grid = 20,
-    control = control_grid(save_pred = TRUE)
+    grid = grid,
+    control = control_grid(save_pred = TRUE, parallel_over = 'everything')
   )
 
   ## finalize
-  rf_bestParam <- select_best(rf_cv, metric = 'rmse')
-  rf_wf_final <- finalize_workflow(rf_wf, rf_bestParam)
-  rf_model <- fit(rf_wf_final, df_training)
+  ML_bestParam <- select_best(ML_cv, metric = 'rmse')
+  ML_wf_final <- finalize_workflow(ML_wf, ML_bestParam)
+  ML_model <- fit(ML_wf_final, df_training)
 
   ## df for plot
-  rf_df_training <- predict(rf_model, df_training) %>%
-    bind_cols(df_training)
-  rf_df_testing <- predict(rf_model, df_testing) %>%
-    bind_cols(df_testing)
+  ML_df_training <- predict(ML_model, df_training) %>% bind_cols(df_training)
+  ML_df_testing <- predict(ML_model, df_testing) %>% bind_cols(df_testing)
 
-  rf_df_training %>%
-    metrics({{biochemphy}}, .pred) %>%
-    mutate()
+  # ML_df_training %>% metrics({{biochemphy}}, .pred)
 
 
-  rf_metrics_cv <- left_join(rf_bestParam, collect_metrics(rf_cv)) %>%
+  ML_metrics_cv <- left_join(ML_bestParam, collect_metrics(ML_cv)) %>%
     mutate(.estimate = mean) %>%
     dplyr::select(.metric, .estimator, .estimate) %>%
     mutate(group = 'cv')
-  rf_metrics_train <- metrics(rf_df_training, {{biochemphy}}, .pred) %>%
-    mutate(group = 'training')
-  rf_metrics_test <- metrics(rf_df_testing, {{biochemphy}}, .pred) %>%
-    mutate(group = 'testing')
 
-  rf_df_metrics <- bind_rows(rf_metrics_cv, rf_metrics_train, rf_metrics_test) %>%
-    dplyr::filter(.metric != 'mae')
+  ML_metrics_train <- metrics(ML_df_training, {{biochemphy}}, .pred) %>% mutate(group = 'training')
+  ML_metrics_test <- metrics(ML_df_testing, {{biochemphy}}, .pred) %>% mutate(group = 'testing')
+
+  ML_df_metrics <- bind_rows(ML_metrics_cv, ML_metrics_train, ML_metrics_test)
 
 
   ## output
-  list(cv = rf_cv, df_training = rf_df_training, df_testing = rf_df_testing,
-       df_metrics = rf_df_metrics)
+  list(cv = ML_cv,
+       finalModel = ML_model,
+       df_training = ML_df_training,
+       df_testing = ML_df_testing,
+       df_metrics = ML_df_metrics)
 }
 
 
