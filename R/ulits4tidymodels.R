@@ -34,6 +34,7 @@ spec_svm <- function(){
 #'
 #' @examples
 spec_pls <- function(){
+  library(plsmod)
   pls(num_comp = tune(), predictor_prop = tune()) %>%
   set_engine("mixOmics") %>%
   set_mode("regression")
@@ -95,6 +96,7 @@ tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds, grid = 2
 
   ## output
   list(cv = ML_cv,
+       yname = as.character(fm)[2],
        finalModel = ML_model,
        df_training = ML_df_training,
        df_testing = ML_df_testing,
@@ -333,7 +335,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
     p_curve <- ggplot(df_training, aes(x=x, y=y)) +
       geom_point(aes(color = stageF, shape = stageF)) +
       geom_line(data = df_sim) +
-      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.1, vjust = 1,
+      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.0, vjust = 1,
                  parse = TRUE) +
       labs(x = xname, y = yname) +
       theme(legend.position = 'top',
@@ -344,7 +346,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
       geom_point() +
       geom_line(data = df_sim) +
       labs(x = xname, y = yname) +
-      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.1, vjust = 1,
+      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.0, vjust = 1,
                  parse = TRUE)
 
 
@@ -362,7 +364,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
 #'
 #' @examples
 workflow_post_plot <- function(fitResult){
-  xname <- fitResult$xname
+  # xname <- fitResult$xname
   yname <- fitResult$yname
   df_metrics <- fitResult$df_metrics
 
@@ -372,7 +374,8 @@ workflow_post_plot <- function(fitResult){
   df_testing$group <- 'Validation'
   df <- rbind(df_trainging, df_testing)
 
-  tmp <- c(df_trainging$y, df_trainging$.pred, df_testing$x, df_testing$y)
+  tmp <- c(df_trainging[[yname]], df_trainging[['.pred']],
+           df_testing[[yname]], df_testing[['.pred']])
   lims <- c(floor(min(tmp)), ceiling(max(tmp)))
   cv_rmse <- dplyr::filter(df_metrics, group == 'cv', .metric == 'rmse')$.estimate[1]
   cv_rsq <- dplyr::filter(df_metrics, group == 'cv', .metric == 'rsq')$.estimate[1]
@@ -386,12 +389,10 @@ workflow_post_plot <- function(fitResult){
 
   ggplot() +
     geom_abline(intercept = 0, slope = 1, color = 'grey50', size = 1) +
-    geom_point(aes(x = y, y = .pred, color = stageF, shape = stageF),
-               data = df) +
+    geom_point(aes_string(x = yname, y = '.pred', color = 'stageF', shape = 'stageF'), data = df) +
     coord_equal(xlim = lims, ylim = lims) +
-    geom_label(aes(x = -Inf, y = Inf, label = label),
-               data = df_label, hjust = -0.1, vjust = 1,
-                 parse = TRUE) +
+    geom_label(aes(x = -Inf, y = Inf, label = label), data = df_label,
+               hjust = -0.0, vjust = 1, parse = TRUE) +
     facet_grid(~group) +
     labs(x = sprintf('Observed %s', yname),
          y = sprintf('Predicted %s', yname)) +
