@@ -186,14 +186,6 @@ spc_2df <- function(spc) {
 }
 
 
-#' Title
-#'
-#' @param spc
-#'
-#' @return
-#' @export
-#'
-#' @examples
 spc_2df_withMask <- function(spc){
   if (inherits(spc, 'data.frame')) return(spc)
   df <- spc_2df(spc)
