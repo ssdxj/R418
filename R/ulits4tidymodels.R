@@ -1,17 +1,45 @@
 # model spec --------------------------------------------------------------
 
-
 ## define model: randomForest
-spec_rf <- rand_forest(mtry = tune(),  trees = 500,  min_n = tune()) %>%
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_rf <- function(){
+  rand_forest(mtry = tune(),  trees = 500,  min_n = tune()) %>%
   set_engine('ranger') %>%
   set_mode('regression')
+}
 
 ### define model: support vector machine
-spec_svm <- svm_rbf(cost = tune(),
-                    rbf_sigma = tune(),
-                    margin = tune()) %>%
-  set_engine('kernlab') %>%
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_svm <- function(){
+  svm_rbf(cost = tune(), rbf_sigma = tune(), margin = tune()) %>%
+  set_engine('liquidSVM') %>%
   set_mode('regression')
+}
+
+### define model: pls
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spec_pls <- function(){
+  library(plsmod)
+  pls(num_comp = tune(), predictor_prop = tune()) %>%
+  set_engine("mixOmics") %>%
+  set_mode("regression")
+}
+
 
 
 # ML routine --------------------------------------------------------------
@@ -27,54 +55,52 @@ spec_svm <- svm_rbf(cost = tune(),
 #' @return   list(cv, df_training, df_testing, df_metrics)
 #' @export
 #' @examples
-tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds){
+tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds, grid = 20){
 
   ## define workflow
-  rf_wf <- workflow() %>%
+  ML_wf <- workflow() %>%
     add_recipe(rec) %>%
     add_model(spec)
 
   ## cross-validaiotn
   registerDoParallel(detectCores())
-  rf_cv <- tune_grid(
-    rf_wf,
+  ML_cv <- tune_grid(
+    ML_wf,
     resamples = df_folds,
-    grid = 20,
-    control = control_grid(save_pred = TRUE)
+    grid = grid,
+    control = control_grid(save_pred = TRUE, parallel_over = 'everything')
   )
 
   ## finalize
-  rf_bestParam <- select_best(rf_cv, metric = 'rmse')
-  rf_wf_final <- finalize_workflow(rf_wf, rf_bestParam)
-  rf_model <- fit(rf_wf_final, df_training)
+  ML_bestParam <- select_best(ML_cv, metric = 'rmse')
+  ML_wf_final <- finalize_workflow(ML_wf, ML_bestParam)
+  ML_model <- fit(ML_wf_final, df_training)
 
   ## df for plot
-  rf_df_training <- predict(rf_model, df_training) %>%
-    bind_cols(df_training)
-  rf_df_testing <- predict(rf_model, df_testing) %>%
-    bind_cols(df_testing)
+  ML_df_training <- predict(ML_model, df_training) %>% bind_cols(df_training)
+  ML_df_testing <- predict(ML_model, df_testing) %>% bind_cols(df_testing)
 
-  rf_df_training %>%
-    metrics({{biochemphy}}, .pred) %>%
-    mutate()
+  # ML_df_training %>% metrics({{biochemphy}}, .pred)
 
 
-  rf_metrics_cv <- left_join(rf_bestParam, collect_metrics(rf_cv)) %>%
+  ML_metrics_cv <- left_join(ML_bestParam, collect_metrics(ML_cv)) %>%
     mutate(.estimate = mean) %>%
     dplyr::select(.metric, .estimator, .estimate) %>%
     mutate(group = 'cv')
-  rf_metrics_train <- metrics(rf_df_training, {{biochemphy}}, .pred) %>%
-    mutate(group = 'training')
-  rf_metrics_test <- metrics(rf_df_testing, {{biochemphy}}, .pred) %>%
-    mutate(group = 'testing')
 
-  rf_df_metrics <- bind_rows(rf_metrics_cv, rf_metrics_train, rf_metrics_test) %>%
-    dplyr::filter(.metric != 'mae')
+  ML_metrics_train <- metrics(ML_df_training, {{biochemphy}}, .pred) %>% mutate(group = 'training')
+  ML_metrics_test <- metrics(ML_df_testing, {{biochemphy}}, .pred) %>% mutate(group = 'testing')
+
+  ML_df_metrics <- bind_rows(ML_metrics_cv, ML_metrics_train, ML_metrics_test)
 
 
   ## output
-  list(cv = rf_cv, df_training = rf_df_training, df_testing = rf_df_testing,
-       df_metrics = rf_df_metrics)
+  list(cv = ML_cv,
+       yname = as.character(fm)[2],
+       finalModel = ML_model,
+       df_training = ML_df_training,
+       df_testing = ML_df_testing,
+       df_metrics = ML_df_metrics)
 }
 
 
@@ -111,10 +137,8 @@ tidymodels_linearReg <- function(spc, indexName, biochemphy){
     add_model(spec)
 
   ## cross-validaiotn
-
-  all_cores <- parallel::detectCores(logical = FALSE)
-  library(doParallel)
-  cl <- makePSOCKcluster(all_cores)
+  # registerDoParallel(detectCores())
+  cl <- makeCluster(detectCores())
   rf_cv <- fit_resamples(
     object = spec,
     preprocessor = rec,
@@ -311,7 +335,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
     p_curve <- ggplot(df_training, aes(x=x, y=y)) +
       geom_point(aes(color = stageF, shape = stageF)) +
       geom_line(data = df_sim) +
-      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.1, vjust = 1,
+      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.0, vjust = 1,
                  parse = TRUE) +
       labs(x = xname, y = yname) +
       theme(legend.position = 'top',
@@ -322,7 +346,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
       geom_point() +
       geom_line(data = df_sim) +
       labs(x = xname, y = yname) +
-      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.1, vjust = 1,
+      geom_label(aes(x = -Inf, y = Inf), label = label, hjust = -0.0, vjust = 1,
                  parse = TRUE)
 
 
@@ -340,7 +364,7 @@ rsq <- yardstick::rsq_vec(df_training[[yname]], df_training[['.pred']])
 #'
 #' @examples
 workflow_post_plot <- function(fitResult){
-  xname <- fitResult$xname
+  # xname <- fitResult$xname
   yname <- fitResult$yname
   df_metrics <- fitResult$df_metrics
 
@@ -350,7 +374,8 @@ workflow_post_plot <- function(fitResult){
   df_testing$group <- 'Validation'
   df <- rbind(df_trainging, df_testing)
 
-  tmp <- c(df_trainging$y, df_trainging$.pred, df_testing$x, df_testing$y)
+  tmp <- c(df_trainging[[yname]], df_trainging[['.pred']],
+           df_testing[[yname]], df_testing[['.pred']])
   lims <- c(floor(min(tmp)), ceiling(max(tmp)))
   cv_rmse <- dplyr::filter(df_metrics, group == 'cv', .metric == 'rmse')$.estimate[1]
   cv_rsq <- dplyr::filter(df_metrics, group == 'cv', .metric == 'rsq')$.estimate[1]
@@ -364,12 +389,10 @@ workflow_post_plot <- function(fitResult){
 
   ggplot() +
     geom_abline(intercept = 0, slope = 1, color = 'grey50', size = 1) +
-    geom_point(aes(x = y, y = .pred, color = stageF, shape = stageF),
-               data = df) +
+    geom_point(aes_string(x = yname, y = '.pred', color = 'stageF', shape = 'stageF'), data = df) +
     coord_equal(xlim = lims, ylim = lims) +
-    geom_label(aes(x = -Inf, y = Inf, label = label),
-               data = df_label, hjust = -0.1, vjust = 1,
-                 parse = TRUE) +
+    geom_label(aes(x = -Inf, y = Inf, label = label), data = df_label,
+               hjust = -0.0, vjust = 1, parse = TRUE) +
     facet_grid(~group) +
     labs(x = sprintf('Observed %s', yname),
          y = sprintf('Predicted %s', yname)) +
