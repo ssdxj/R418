@@ -137,15 +137,15 @@ tidymodels_linearReg <- function(spc, indexName, biochemphy){
     add_model(spec)
 
   ## cross-validaiotn
-  # registerDoParallel(detectCores())
-  cl <- makeCluster(detectCores())
+  registerDoParallel(detectCores())
+  # cl <- makeCluster(detectCores())
   rf_cv <- fit_resamples(
     object = spec,
     preprocessor = rec,
     resamples = df_folds,
     control = control_grid(save_pred = TRUE)
   )
-  stopCluster(cl)
+  # stopCluster(cl)
 
 
   ## finalize
