@@ -4,7 +4,7 @@
 \alias{tidymodels_ML}
 \title{tidymodel routine for ML fitting}
 \usage{
-tidymodels_ML(spec, res, df_training, df_testing, df_folds)
+tidymodels_ML(spec, res, df_training, df_testing, df_folds, grid = 20)
 }
 \arguments{
 \item{spec}{model_spec obj}

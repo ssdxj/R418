@@ -63,13 +63,16 @@ tidymodels_ML <- function(spec, res, df_training, df_testing, df_folds, grid = 2
     add_model(spec)
 
   ## cross-validaiotn
-  registerDoParallel(detectCores())
+  # cl <- makePSOCKcluster(detectCores(logical = FALSE))
+  # cl <- makeCluster(detectCores(logical = FALSE))
+  # registerDoParallel(cl)
   ML_cv <- tune_grid(
     ML_wf,
     resamples = df_folds,
     grid = grid,
     control = control_grid(save_pred = TRUE, parallel_over = 'everything')
   )
+  # stopCluster(cl)
 
   ## finalize
   ML_bestParam <- select_best(ML_cv, metric = 'rmse')
@@ -137,8 +140,8 @@ tidymodels_linearReg <- function(spc, indexName, biochemphy){
     add_model(spec)
 
   ## cross-validaiotn
-  registerDoParallel(detectCores())
-  # cl <- makeCluster(detectCores())
+  # cl <- makePSOCKcluster(detectCores(logical = FALSE))
+  # registerDoParallel(cl)
   rf_cv <- fit_resamples(
     object = spec,
     preprocessor = rec,
