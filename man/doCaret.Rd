@@ -4,7 +4,7 @@
 \alias{doCaret}
 \title{caret::train wrapper}
 \usage{
-doCaret(method, tuneGrid, tuneLength, fm, df, biochemphyNM)
+doCaret(method, tuneGrid, tuneLength, fm, df_inTrain, df_Test, biochemphyNM)
 }
 \arguments{
 \item{method}{model(list) or model name}
@@ -15,9 +15,9 @@ doCaret(method, tuneGrid, tuneLength, fm, df, biochemphyNM)
 
 \item{fm}{formula}
 
-\item{df}{data}
-
 \item{biochemphyNM}{y name for label}
+
+\item{df}{data}
 }
 \value{
 modified caret::train obj

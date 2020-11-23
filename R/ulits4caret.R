@@ -48,11 +48,8 @@ pretty_values <- function(x) map_chr(x, pretty_value)
 #' @export
 #'
 #' @examples
-doCaret <- function(method, tuneGrid, tuneLength, fm, df, biochemphyNM){
+doCaret <- function(method, tuneGrid, tuneLength, fm, df_inTrain, df_Test, biochemphyNM){
 
-  # data split
-  df_inTrain <- dplyr::filter(df, inTrain == 'inTrain')
-  df_Test <- dplyr::filter(df, inTrain != 'inTrain')
 
   # setup cross-validation
   set.seed(324)
