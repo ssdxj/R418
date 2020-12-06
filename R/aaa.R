@@ -111,3 +111,31 @@ PlotID_ynsd <- seq(1, 12) %>% str_pad(2, 'left', '0') %>% str_pad(3, 'left', 'P'
 
 
 
+
+# tools -------------------------------------------------------------------
+
+#' format digits in training param to str
+#'
+#' @param x input value
+#'
+#' @return formated value
+pretty_value <- function(x) {
+  # for safe
+  out <- x
+
+  if (is.numeric(x)) { # numeric
+    tmp <- as.character(x)
+    if (!str_detect(tmp, "\\.")) { # integer
+      out <- tmp
+    } else { # float
+      if (nchar(str_split(tmp, "\\.")[[1]][2]) <= 2) { # digit number lt 2, ex 0.12
+        out <- tmp
+      } else { # digit number lg 2, ex 0.123455
+        out <- sprintf("%.2e", x)
+      }
+    }
+  }
+
+  return(out)
+}
+

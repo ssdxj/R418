@@ -2,7 +2,7 @@
 % Please edit documentation in R/ulits4caret.R
 \name{get_indexCV}
 \alias{get_indexCV}
-\title{Create repeated n fold corssvalidation index}
+\title{Create repeated n fold corss-validation index}
 \usage{
 get_indexCV(x, folds = 10, times = 5)
 }
@@ -17,5 +17,5 @@ get_indexCV(x, folds = 10, times = 5)
 list of cv index
 }
 \description{
-Create repeated n fold corssvalidation index
+Create repeated n fold corss-validation index
 }

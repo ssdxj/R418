@@ -4,13 +4,15 @@
 \alias{generate_fm}
 \title{all bands model formula generator}
 \usage{
-generate_fm(df, yname)
+generate_fm(df, yname, model = "B_")
 }
 \arguments{
-\item{yname}{}
+\item{df}{the df with columns [yname, B_400, B_401, ...]}
+
+\item{yname}{the target variable column name}
 }
 \value{
-
+a formula object
 }
 \description{
 all bands model formula generator
