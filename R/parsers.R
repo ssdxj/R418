@@ -221,3 +221,50 @@ spc_from_sigs <- function(dat) {
 
   return(spc)
 }
+
+
+
+#' parser for ENVI ROI stat file, the ROIs are from shpfile by "unique records of an attribute to seperate ROIs" with 'PlotID" attribute
+#'
+#' @param fpath the txt file path
+#' @param gain dafualt 0.0001 for s185
+#'
+#' @return df
+#' @export
+parser_ENVIROIstat <- function(fpath, gain = 0.0001){
+  dat <- readLines(fpath)
+  # lines of reflecance not start with str
+  split_index <- str_detect(dat, '^[[:alpha:]]')
+  dat_header <- dat[split_index][-1]
+  dat_ref <- dat[!split_index]
+  df <- read_table(dat_ref,
+                   col_names = str_extract(dat_header, 'Wavelength|P[[:digit:]]{2}'))
+
+
+  df %>%
+    pivot_longer(-Wavelength, names_to = 'PlotID', values_to = 'value') %>%
+    mutate(value = value*0.0001) %>%
+    pivot_wider(names_from = 'Wavelength', values_from = 'value')
+}
+
+
+#' parser for Cubert export txt file
+#'
+#' @param fpath
+#'
+#' @return
+#' @export
+#'
+#' @examples
+parser_cubert_export <- function(fpath){
+
+  dat <- readLines(fpath)
+  split_index <- str_detect(dat, '^[[:digit:]]')
+  dat <- dat[split_index]
+  dat <- read_delim(dat, delim = '\t', col_names = FALSE)
+  colnames(dat) <- c('wl', paste('P', 1:(ncol(dat)-1), sep = ''))
+
+  dat %>%
+    pivot_longer(-wl, names_to = 'PlotID', values_to = 'reflect') %>%
+    mutate(fname = basename(fpath))
+}
