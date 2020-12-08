@@ -149,6 +149,12 @@ spc_generator <- function(input, idCol = 'PlotID') {
 #' @return Speclib obj
 #' @export
 spc_fromDf <- function(df, bands_reg = "^(\\d)+(\\.\\d+)?$") {
+  if('wl' %in% names(df)) {
+    df <- pivot_wider(df, names_from = 'wl',
+                                            values_from = 'reflect')
+  }
+
+
   # do select
   df_spectra <- dplyr::select(df, matches(bands_reg))
   df_meta <- dplyr::select(df, -matches(bands_reg))
