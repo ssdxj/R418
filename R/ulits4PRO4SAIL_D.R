@@ -3255,7 +3255,7 @@ PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
 
       #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       out <- mclapply(seq_len(nrow(df)), function(i){
-        PRO4SAIL_DB_wrapper_var(
+        PRO4SAIL_D_wrapper_var(
           Cab[i], Car[i], Cant[i], Cbrown[i], Cw[i], Cm[i], N[i], psoil[i],
           LAI[i], hspot[i], tts[i], tto[i], psi[i], TypeLidf[i], lidfa[i],
           lidfb[i],rsoil = rsoil_local
