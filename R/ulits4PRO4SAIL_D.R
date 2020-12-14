@@ -3134,7 +3134,7 @@ dataSpec_PDB = function() {
 #' @export
 #'
 #' @examples
-PRO4SAIL_DB_wrapper_var <- function(Cab, Car, Cant, Cbrown, Cw, Cm, N, psoil, LAI,
+PRO4SAIL_D_wrapper_var <- function(Cab, Car, Cant, Cbrown, Cw, Cm, N, psoil, LAI,
                                     hspot, tts, tto, psi, TypeLidf, LIDFa,
                                     LIDFb, rsoil = NULL){
 
@@ -3155,7 +3155,7 @@ PRO4SAIL_DB_wrapper_var <- function(Cab, Car, Cant, Cbrown, Cw, Cm, N, psoil, LA
   # % rsdt: directional-hemispherical reflectance factor for solar incident flux
   # % rddt: bi-hemispherical reflectance factor
 
-  out <-PRO4SAIL_DB(N,Cab,Car,Cant,Cbrown,Cw,Cm,LIDFa,LIDFb,TypeLidf,LAI,
+  out <-PRO4SAIL_D(N,Cab,Car,Cant,Cbrown,Cw,Cm,LIDFa,LIDFb,TypeLidf,LAI,
                     hspot,tts,tto,psi,rsoil);
   rdot <- out$rdot
   rsot <- out$rsot
@@ -3191,7 +3191,7 @@ PRO4SAIL_DB_wrapper_var <- function(Cab, Car, Cant, Cbrown, Cw, Cm, N, psoil, LA
 #' @export
 #'
 #' @examples
-PRO4SAIL_DB_wrapper_df <- function(df, rsoil = NULL){
+PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
 
   require(doParallel)
   require(R418)
@@ -3226,7 +3226,7 @@ PRO4SAIL_DB_wrapper_df <- function(df, rsoil = NULL){
 
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     out <- mclapply(seq_len(nnnn), function(i){
-      PRO4SAIL_DB_wrapper_var(
+      PRO4SAIL_D_wrapper_var(
         Cab[i], Car[i], Cant[i], Cbrown[i], Cw[i], Cm[i], N[i], psoil[i], LAI[i],
         hspot[i], tts[i], tto[i], psi[i], TypeLidf[i], lidfa[i], lidfb[i],
         rsoil = (1-psoil[i]) * wetSoil +psoil[i] * drySoil)
