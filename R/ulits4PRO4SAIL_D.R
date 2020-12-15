@@ -3234,7 +3234,7 @@ PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-    spc_sim <- speclib(do.call(rbind, out), lambda)
+    spc_sim <- speclib(do.call(rbind, out), 400:2500)
     SI(spc_sim) <- df
 
   } else { # case multi user provided soil spectra
