@@ -3225,7 +3225,7 @@ PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
   if(is.null(rsoil)) { # case rsoil by psoil and drySoil, wetSoil
 
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    out <- mclapply(seq_len(nnnn), function(i){
+    out <- mclapply(seq_len(nrow(df)), function(i){
       PRO4SAIL_D_wrapper_var(
         Cab[i], Car[i], Cant[i], Cbrown[i], Cw[i], Cm[i], N[i], psoil[i], LAI[i],
         hspot[i], tts[i], tto[i], psi[i], TypeLidf[i], lidfa[i], lidfb[i],
