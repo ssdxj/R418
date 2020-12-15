@@ -177,13 +177,13 @@
   for (i1 in 1:8) {
     t = i1 * 10
 
-    freq[i1] = dcum(a, b, t)
+    freq[i1] = .dcum(a, b, t)
 
   }
 
   for (i2 in 9:12) {
     t = 80 + (i2 - 8) * 2.0
-    freq[i2] = dcum(a, b, t)
+    freq[i2] = .dcum(a, b, t)
   }
 
   freq[13] = 1
@@ -3264,7 +3264,7 @@ PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
       #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       spc_local <- as_tibble(do.call(rbind, out), .name_repair = 'minimal')
-      colnames(spc_local) <- lambda
+      colnames(spc_local) <- 400:2500
       spc_local <- bind_cols(df, spc_local) %>%
         mutate(rsoil_ID = rsoil_ID)
 
@@ -3284,4 +3284,5 @@ PRO4SAIL_D_wrapper_df <- function(df, rsoil = NULL){
 
   return(spc_sim)
 }
+
 
