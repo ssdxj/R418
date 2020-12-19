@@ -93,13 +93,13 @@ parser_sig <- function(fpath) {
   sig_mainTable <- read.table(text = sig_main)
 
   # get wl
-  out$wl <- sig_mainTable[[1]]
+  out[['wl']] <- sig_mainTable[[1]]
   # get ref
-  out$ref <- sig_mainTable[[4]] / 100.0
+  out[['ref']] <- sig_mainTable[[4]] / 100.0
 
   # handle the meta part
   # name from file
-  out$name1 <- tools::file_path_sans_ext(toupper(basename(fpath)))
+  out[['name1']] <- tools::file_path_sans_ext(toupper(basename(fpath)))
 
   # longitude
   char_greped <- grep("^longitude", sig_meta, value = TRUE)

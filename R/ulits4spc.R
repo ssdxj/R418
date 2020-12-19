@@ -284,7 +284,7 @@ spc_bandwiseCor <- function(spc, yname, colLabel){
     # drop_na(reflect) %>%
     drop_na(.data[[yname]]) %>%
     group_by(wl) %>%
-    summarise(!!(colLabel) := cor(.data[[yname]], .data$reflect, use = 'na.or.complete'),
+    summarise(!!(colLabel) := cor(.data[[yname]], .data[['reflect']], use = 'na.or.complete'),
               .groups = 'drop')
 }
 
