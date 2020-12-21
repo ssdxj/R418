@@ -181,8 +181,8 @@ spc_2df <- function(spc) {
   if(inherits(spc, 'data.frame')) {
     df <- mutate(spc, .ID = nrow(spc))
     return(df)
-
   }
+
   if(!inherits(spc, 'Speclib')) stop('A Speclib is needed!!!')
 
   df_meta <- SI(spc)
@@ -191,9 +191,17 @@ spc_2df <- function(spc) {
   colnames(df_spectra) <- wavelength(spc)
   df_spectra <- as_tibble(df_spectra)
 
-  bind_cols(df_meta, df_spectra) %>%
-    as_tibble() %>%
-  mutate(.ID = 1:nrow(.))
+
+  if(nrow(df_meta) != 0){
+    out <- bind_cols(df_meta, df_spectra) %>%
+      as_tibble() %>%
+      mutate(.ID = 1:nrow(.))
+  } else {
+    out <- df_spectra %>%
+      mutate(.ID=1:nrow(.))
+  }
+
+  return(out)
 }
 
 
