@@ -64,6 +64,16 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
     out <- nir / re - 1
 
 
+# others ------------------------------------------------------------------
+
+
+  } else if(index == 'NDVI740'){
+    re <- get_reflectance(spc, wavelength = 740, weighted = FALSE)
+    out <- (nir-re)/(nir+re)
+  } else if(index %in% c('OSAVI2')){
+    out <- vegindex(spc, index)
+
+
     # Sims and Gamon (2002)
   } else if(index %in% c('mSR', 'mSR705','mNDVI', 'mND705')){
     # Sims, Daniel A., and John A. Gamon. 2002. “Relationships between Leaf Pigment Content and Spectral Reflectance across a Wide Range of Species, Leaf Structures and Developmental Stages.” Remote Sensing of Environment 81 (2–3): 337–54. https://doi.org/10.1016/S0034-4257(02)00010-X.
