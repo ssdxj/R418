@@ -12,7 +12,7 @@ library(tidymodels)
 library(kableExtra)
 library(ggpubr)
 library(ggsci)
-library(plsmod)
+# library(plsmod)
 
 
 options(stringsAsFactors = FALSE)

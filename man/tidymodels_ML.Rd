@@ -2,7 +2,7 @@
 % Please edit documentation in R/ulits4tidymodels.R
 \name{tidymodels_ML}
 \alias{tidymodels_ML}
-\title{tidymodel routine for ML fitting}
+\title{Title}
 \usage{
 tidymodels_ML(spec, res, df_training, df_testing, df_folds, grid = 20)
 }
@@ -18,8 +18,14 @@ tidymodels_ML(spec, res, df_training, df_testing, df_folds, grid = 20)
 \item{df_folds}{info for cross-validation}
 }
 \value{
+
+
 list(cv, df_training, df_testing, df_metrics)
 }
 \description{
+Title
+}
+\examples{
 tidymodel routine for ML fitting
+
 }
