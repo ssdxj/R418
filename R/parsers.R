@@ -268,3 +268,41 @@ parser_cubert_export <- function(fpath){
     pivot_longer(-wl, names_to = 'PlotID', values_to = 'reflect') %>%
     mutate(fname = basename(fpath))
 }
+
+
+
+# ulits -------------------------------------------------------------------
+
+
+#' a svc sig file parser
+#'
+#' @param fpath the svc sig file path
+#'
+#' @return a long tibble
+#' @export
+#'
+#' @examples
+parser_sig_2df <- function(fpath) {
+  # list for store result
+
+  # read file into string vector
+  sig_raw <- readLines(fpath)
+
+  # grep the meta part
+  sig_meta <- grep("^[[:alpha:]]+", sig_raw, value = TRUE)
+  # grep the data part
+  sig_main <- grep("^[[:digit:]]+", sig_raw, value = TRUE)
+
+  # handle the data part
+  sig_mainTable <- read.table(text = sig_main)
+
+  # get wl
+  wl <- sig_mainTable[[1]]
+  # get ref
+  ref <- sig_mainTable[[4]] / 100.0
+
+  # handle the meta part
+  # name from file
+  tibble(wl = wl, reflect = ref, fname = basename(fpath))
+
+}

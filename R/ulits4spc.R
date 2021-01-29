@@ -384,6 +384,147 @@ ssdxj_rededge_apply <- function(i, x, D1, D2) {
 }
 
 
+# spc plugins -------------------------------------------------------------
+
+#'  resample a spc to same spectral resolution and bands with a given spc
+#'
+#' @param sim  the spc to be resampled
+#' @param obs  the example spc
+#'
+#' @return the resampled spc
+#' @export
+#'
+#' @examples
+spc_resample <- function(sim, obs){
+  sensor <- data.frame(center = wavelength(obs), fwhm = fwhm(obs))
+  spectralResampling(sim, sensor = sensor)
+}
+
+#' get green peak position (vec) from give spc by finding the max reflect between 500 and 660nm
+#'
+#' @param spc the spc dataset
+#'
+#' @return green peak position vector
+#' @export
+#'
+#' @examples
+spc_greenPeak <- function(spc){
+  wl <- wavelength(spc)
+  flag <- wl > 500 & wl < 660
+  dat <- spectra(spc)[,flag]
+  wl[flag][apply(dat, 1, which.max)]
+}
+
+
+#' expand s185 spectra(rsoil) to 400:2500 nm by fwhm 1nm (for PROSAIL)
+#'
+#' @param spc a one spectra speclib obj
+#' @param ref_default reflectance of bands beyound 470:950 will be set to ref_default
+#'
+#' @return a speclib obj
+#' @export
+spc_rsoil_s185_expand <- function(spc, ref_default = 0.0001) {
+
+  # check nspectra, mutispectra will averaged
+  if (nspectra(spc) > 1){
+    spc <- spc_melt(spc) %>%
+      group_by(wl) %>%
+      summarise(reflect = mean(reflect), .groups = 'drop') %>%
+      spc_fromDf()
+  }
+
+  # resample 4nm to 1nm between 470 and 950nm
+  mask(spc) <- c(300, 470, 950, 1000)
+  spc <- spectralResampling(spc, data.frame(center = 470:950, fwhm = 1))
+
+  # other band excpet 470 to 950nm set to default value 0.001
+  wl_left <- 400:469
+  ref_left <- rep(ref_default, length(wl_left))
+  wl_right <- 951:2500
+  ref_right <- rep(ref_default, length(wl_right))
+  ref <- c(ref_left, spectra(spc)[1, ], ref_right)
+  wl <- 400:2500
+
+  # to spc
+  spc <-speclib(ref, wl)
+  idSpeclib(spc) <- 'PaddyS185'
+
+  return(spc)
+}
+
+
+#' do spc * bs
+#'
+#' @param rsoil a one spectra spc
+#' @param bs  the bs vector
+#'
+#' @return a 1*length(bs) spectra spc
+#' @export
+#'
+#' @examples
+spc_rsoil_bs <- function(rsoil, bs = seq(0.5, 1.5, length.out = 7)){
+
+  if(nspectra(rsoil) != 1) stop('nspectra error')
+
+  ref <- spectra(rsoil)[1,]
+  ref <- lapply(bs, function(x) x*ref)
+  ref <- do.call(rbind, ref)
+  spc <- speclib(ref, wavelength(rsoil))
+
+  idSpeclib(spc) <-  as.character(round(bs, 2)*100) %>%
+    str_pad(3, 'left', 0) %>%
+    str_pad(4, 'left', 'b')
+
+  return(spc)
+}
+
+#' list of spc to one spc
+#'
+#' @param ... the spc list
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spc_c <- function(...) {
+  params <- list(...)
+  map_df(names(params), function(name) {
+    spc <- params[[name]]
+    df <- spc_2df(spc)
+    df$rsoil <- name
+    return(df)
+  })
+}
+
+#' spc reflectance to list of one spectra spc
+#'
+#' @param spc the spclib obj
+#' @param tag for name
+#'
+#' @return list of vectors
+#' @export
+#'
+#' @examples
+spc_pop <- function(spc) {
+
+  ref <- spectra(spc)
+  wl <- wavelength(spc)
+  ids <- idSpeclib(spc)
+
+  out <- lapply(1:nrow(ref), function(i){
+    spc <- speclib(ref[i, ], wl)
+    idSpeclib(spc) <- c(ids[i])
+    return(spc)
+  })
+
+  names(out) <- ids
+
+  return(out)
+}
+
+
+
+
 # depresed ----------------------------------------------------------------
 
 # spc_2df4plot <- function(spc) {
