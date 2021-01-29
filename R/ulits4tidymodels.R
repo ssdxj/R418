@@ -33,12 +33,12 @@ spec_svm <- function(){
 #' @export
 #'
 #' @examples
-spec_pls <- function(){
-  library(plsmod)
-  pls(num_comp = tune(), predictor_prop = tune()) %>%
-  set_engine("mixOmics") %>%
-  set_mode("regression")
-}
+# spec_pls <- function(){
+#   library(plsmod)
+#   pls(num_comp = tune(), predictor_prop = tune()) %>%
+#   set_engine("mixOmics") %>%
+#   set_mode("regression")
+# }
 
 
 
