@@ -1,10 +1,263 @@
-#' vegetion index calculation handler
+#' helper for VI:VNAI
 #'
-#' @param index: name of index, used to match function
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+#'
+.calc_VNAI <- function(spc){
+  .radians2degree <- function(x) x/pi*180.0
+
+  wl_B <- 492.4
+  wl_G <- 559.8
+  wl_R <- 664.6
+  wl_NIR <- 832.8
+  ref_B <- get_reflectance(spc, wl_B, weighted = FALSE)
+  ref_G <- get_reflectance(spc, wl_G, weighted = FALSE)
+  ref_R <- get_reflectance(spc, wl_R, weighted = FALSE)
+  ref_NIR <- get_reflectance(spc, wl_NIR)
+
+
+  alpha <- pi - atan((ref_G-ref_B)/(wl_G-wl_B)*2500) - atan((ref_G-ref_R)/(wl_G-wl_R)*2500)
+  beta <- pi - atan((ref_G-ref_B)/(wl_G-wl_B)*2500) + atan((ref_G-ref_NIR)/(wl_G-wl_NIR)*2500)
+
+  .radians2degree(alpha + beta)
+
+}
+
+
+#' helper for VI: TTVI
+#'
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+.calc_TTVI <- function(spc){
+  r865 <- get_reflectance(spc, wavelength = 865, weighted = FALSE)
+  r783 <- get_reflectance(spc, wavelength = 783, weighted = FALSE)
+  r740 <- get_reflectance(spc, wavelength = 740, weighted = FALSE)
+
+  nno0.5*((783-740)*(r865-r740)-(865-740)*(r783-r740))
+
+}
+
+#' helper for VI: SF
+#'
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+.calc_SF <- function(spc){
+  r800 <- get_reflectance(spc, wavelength = 800, weighted = FALSE)
+  r560<- get_reflectance(spc, wavelength = 560, weighted = FALSE)
+
+  (r800^2-r560)/r800
+
+}
+
+
+#' helper for VI: DANIR
+#'
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+.calc_DANIR <- function(spc){
+
+  n <- nspectra(spc)
+  wl <- wavelength(spc)
+  ref <- spectra(spc)
+  re_info <- rededge(spc)
+  lp <- re_info[, 'lp']
+  ls <- re_info[, 'ls']
+
+  out <- rep(0, times = n)
+  for(i in 1:n){
+    # bands between lp and ls
+    wl_flag <- wl>=lp[i] & wl <=ls[i]
+    ref_in <- ref[i,wl_flag]
+    R_ls <- ref_in[length(ref_in)]
+    out[i] <- sum(R_ls-ref_in)
+  }
+
+  out
+
+}
+
+
+#' helper for VI: NAOC
+#'
+#' @param spc the speclib obj
+#' @param a start band (in nm)
+#' @param b end band (in nm)
+#'
+#' @return numerical vector
+.calc_NAOC <- function(spc, a = 643, b = 795){
+  wl <- wavelength(spc)
+  ref <- spectra(spc)
+  wl_in_flag <- wl >= a & wl <= b
+  wl_in <- wl[wl_in_flag]
+  n_wl_in <- length(wl_in)
+  ref_in <- ref[,wl_in_flag]
+
+  ref_int <- apply(ref_in, 1, sum)
+  ref_max <- apply(ref_in, 1, max)
+  area_sqare <- n_wl_in * ref_max
+
+  NAOC <- 1 - ref_int/area_sqare
+
+  return(NAOC)
+
+}
+
+
+#' helper to get REP using Gaussain fit, because the \code{hsdar::vegindex(spc, 'mREIP')} DO NOT add sigma
+#'
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+.calc_mREIP <- function(spc){
+
+
+
+  spec <- spectra(spc)
+  wl <- wavelength(spc)
+  wl_R0_flag <- wl >= 670 & wl <= 685
+  wl_Rs_flag <- wl >= 780 & wl <= 795
+  wl_Rl_flag <- wl >= 685 & wl <= 780
+
+  if (wl[1] > 670)  return(rep.int(NA, nrow(y)))
+  if (wl[length(wl)] < 795) return(rep.int(NA, nrow(y)))
+
+  R0 <- matrix(data = apply(spec[, wl_R0_flag], 1, mean), ncol = 1)
+  Rs <- matrix(data = apply(spec[, wl_Rs_flag], 1, mean), ncol = 1)
+  Rl <- as.matrix(spec[, wl_Rl_flag])
+  dat <- cbind(Rl, Rs, R0)
+
+  mREIP_fun <- function(x, wl_Rl) {
+    Rs_local <- x[length(x) - 1]
+    R0_local <- x[length(x)]
+    Rl_local <- x[1:(length(x) - 2)]
+
+    # incase of na
+    flag <- (Rs_local - Rl_local)  > 0
+    Rl_local <- Rl_local[flag]
+    wl_Rl <- wl_Rl[flag]
+
+    Bl <- -1 * log(sqrt((Rs_local - Rl_local)/(Rs_local - R0_local)))
+    coef <- summary(lm(Bl ~ wl_Rl))$coefficients
+    a0 <- coef[1,1]
+    a1 <- coef[2,1]
+    lambda_0 <- -a0/a1
+    sigma <- 1/(sqrt(2)*a1)
+    return(lambda_0 + sigma)
+
+  }
+
+  apply(dat, 1, mREIP_fun, wl[wl_Rl_flag])
+}
+
+
+
+#' helper to get REP by defination (max d1)
+#'
+#' @param spc the speclib obj
+#'
+#' @return numerical vector
+.calc_REP_sg <- function(spc){
+  n_sgolay <- floor((25/mean(spc@fwhm))/2)*2+1
+  if (n_sgolay < 5) n_sgolay <- 5
+  D1 <- derivative.speclib(spc, m = 1, method = 'sgolay', n = n_sgolay)
+
+  flag_region <- wavelength(spc) >= 680 & wavelength(spc) <= 780
+  spec <- spectra(D1)
+  spec[,!flag_region] <- -99999.9
+  lp <- apply(spec, 1, which.max)
+  Rp <- map2_dbl(as.data.frame(t(spectra(spc))), lp, ~.x[.y])
+  Dp <- map2_dbl(as.data.frame(t(spectra(D1))), lp, ~.x[.y])
+  lp <- wavelength(spc)[lp]
+
+  names(Rp) <- NULL
+  names(Dp) <- NULL
+
+  return(list(Rp = Rp, lp = lp, Dp = Dp))
+}
+
+
+
+#' helper to get REP considering multi REP simuation
+#'
+#' @param spc
+#'
+#' @return a data.frame
+.calc_REP_multi <- function(spc){
+  wl <- wavelength(spc)
+  wl_sub_flag <- wl >= 680 & wl <= 750
+  wl_sub <- wl[wl_sub_flag]
+  n <- length(wl_sub)
+  Raw_spec <- spectra(spc)[,wl_sub_flag]
+  D1_spec <- spectra(derivative.speclib(spc, m = 1,
+                                        method = 'sgolay', n = 21))[,wl_sub_flag]
+  D2_spec <- spectra(derivative.speclib(spc, m = 2,
+                                        method = 'sgolay', n = 21))[,wl_sub_flag]
+
+  .REP_multi_apply <- function(i, n, wl_sub, Raw_spec, D1_spec, D2_spec){
+    # incase
+    i <- i[1]
+    lp <- c()
+    Rp <- c()
+    Dp <- c()
+
+    for(j in 3:(n-2)){
+      if(D2_spec[i, j-2] > 0 &
+         D2_spec[i, j-1] > 0 &
+         D2_spec[i, j+1] <= 0 &
+         D2_spec[i, j+2] <= 0){
+
+        lp <- c(lp, wl_sub[j])
+        Rp <- c(Rp, Raw_spec[i,j])
+        Dp <- c(Dp, D1_spec[i,j])
+
+        D2_spec[i, 1:j] <- -9999 # to exclude the j+1 channel
+      }
+    }
+
+    if(length(lp) < 1){
+      lp <- NA
+      Rp <- NA
+      Dp <- NA
+    }
+
+    # if(length(lp == 1)){
+    #   lp <- c(lp, NA)
+    #   Rp <- c(Rp, NA)
+    #   Dp <- c(Dp, NA)
+    # }
+
+    if(length(lp) > 2) {
+      print(i)
+      print(lp)
+      print('more than 2 lp are founded!!!')
+    }
+
+    c(lp1 = lp[1], lp2 = lp[2], Rp1 = Rp[1], Rp2 = Rp[2], Dp1 = Dp[1], Dp2 = Dp[2])
+
+  }
+
+  ids <- 1:nspectra(spc1nm)
+  names(ids) <- ids
+
+  map_df(ids, .REP_multi_apply, n, wl_sub, Raw_spec, D1_spec, D2_spec)
+}
+
+
+
+
+
+#' lapply wrapper for hsdar::vegetation index
+#'
+#' @param index: name of index
 #' @param spc: the speclib obj
-#' @return the index value (vector)
+#' @return numeric vector of VI values
 #' @export
 ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
+
   param <- list(...)
 
   nir <- get_reflectance(spc, wavelength = 830, weighted = weighted)
@@ -276,210 +529,4 @@ ssdxj_vegindex <- function(index, spc, weighted = FALSE, ...) {
 
   return(out)
 }
-
-
-.calc_VNAI <- function(spc){
-  .radians2degree <- function(x) x/pi*180.0
-
-  wl_B <- 492.4
-  wl_G <- 559.8
-  wl_R <- 664.6
-  wl_NIR <- 832.8
-  ref_B <- get_reflectance(spc, wl_B, weighted = FALSE)
-  ref_G <- get_reflectance(spc, wl_G, weighted = FALSE)
-  ref_R <- get_reflectance(spc, wl_R, weighted = FALSE)
-  ref_NIR <- get_reflectance(spc, wl_NIR)
-
-
-  alpha <- pi - atan((ref_G-ref_B)/(wl_G-wl_B)*2500) - atan((ref_G-ref_R)/(wl_G-wl_R)*2500)
-  beta <- pi - atan((ref_G-ref_B)/(wl_G-wl_B)*2500) + atan((ref_G-ref_NIR)/(wl_G-wl_NIR)*2500)
-
-  .radians2degree(alpha + beta)
-
-}
-
-
-.calc_TTVI <- function(spc){
-  r865 <- get_reflectance(spc, wavelength = 865, weighted = FALSE)
-  r783 <- get_reflectance(spc, wavelength = 783, weighted = FALSE)
-  r740 <- get_reflectance(spc, wavelength = 740, weighted = FALSE)
-  out <- nno0.5*((783-740)*(r865-r740)-(865-740)*(r783-r740))
-
-}
-
-.calc_SF <- function(spc){
-  r800 <- get_reflectance(spc, wavelength = 800, weighted = FALSE)
-  r560<- get_reflectance(spc, wavelength = 560, weighted = FALSE)
-
-  (r800^2-r560)/r800
-
-}
-
-
-.calc_DANIR <- function(spc){
-
-  n <- nspectra(spc)
-  wl <- wavelength(spc)
-  ref <- spectra(spc)
-  re_info <- rededge(spc)
-  lp <- re_info[, 'lp']
-  ls <- re_info[, 'ls']
-
-  out <- rep(0, times = n)
-  for(i in 1:n){
-    # bands between lp and ls
-    wl_flag <- wl>=lp[i] & wl <=ls[i]
-    ref_in <- ref[i,wl_flag]
-    R_ls <- ref_in[length(ref_in)]
-    out[i] <- sum(R_ls-ref_in)
-  }
-
-  out
-
-}
-
-
-.calc_NAOC <- function(spc, a = 643, b = 795){
-  wl <- wavelength(spc)
-  ref <- spectra(spc)
-  wl_in_flag <- wl >= a & wl <= b
-  wl_in <- wl[wl_in_flag]
-  n_wl_in <- length(wl_in)
-  ref_in <- ref[,wl_in_flag]
-
-  ref_int <- apply(ref_in, 1, sum)
-  ref_max <- apply(ref_in, 1, max)
-  area_sqare <- n_wl_in * ref_max
-
-  NAOC <- 1 - ref_int/area_sqare
-
-  return(NAOC)
-
-}
-
-
-.calc_mREIP <- function(spc){
-
-# the hsdar::vegindex(spc, 'mREIP') DO NOT add sigma
-
-  spec <- spectra(spc)
-  wl <- wavelength(spc)
-  wl_R0_flag <- wl >= 670 & wl <= 685
-  wl_Rs_flag <- wl >= 780 & wl <= 795
-  wl_Rl_flag <- wl >= 685 & wl <= 780
-
-  if (wl[1] > 670)  return(rep.int(NA, nrow(y)))
-  if (wl[length(wl)] < 795) return(rep.int(NA, nrow(y)))
-
-  R0 <- matrix(data = apply(spec[, wl_R0_flag], 1, mean), ncol = 1)
-  Rs <- matrix(data = apply(spec[, wl_Rs_flag], 1, mean), ncol = 1)
-  Rl <- as.matrix(spec[, wl_Rl_flag])
-  dat <- cbind(Rl, Rs, R0)
-
-  mREIP_fun <- function(x, wl_Rl) {
-    Rs_local <- x[length(x) - 1]
-    R0_local <- x[length(x)]
-    Rl_local <- x[1:(length(x) - 2)]
-
-    # incase of na
-    flag <- (Rs_local - Rl_local)  > 0
-    Rl_local <- Rl_local[flag]
-    wl_Rl <- wl_Rl[flag]
-
-    Bl <- -1 * log(sqrt((Rs_local - Rl_local)/(Rs_local - R0_local)))
-    coef <- summary(lm(Bl ~ wl_Rl))$coefficients
-    a0 <- coef[1,1]
-    a1 <- coef[2,1]
-    lambda_0 <- -a0/a1
-    sigma <- 1/(sqrt(2)*a1)
-    return(lambda_0 + sigma)
-
-  }
-
-  apply(dat, 1, mREIP_fun, wl[wl_Rl_flag])
-}
-
-
-
-.calc_REP_sg <- function(spc){
-  n_sgolay <- floor((25/mean(spc@fwhm))/2)*2+1
-  if (n_sgolay < 5) n_sgolay <- 5
-  D1 <- derivative.speclib(spc, m = 1, method = 'sgolay', n = n_sgolay)
-
-  flag_region <- wavelength(spc) >= 680 & wavelength(spc) <= 780
-  spec <- spectra(D1)
-  spec[,!flag_region] <- -99999.9
-  lp <- apply(spec, 1, which.max)
-  Rp <- map2_dbl(as.data.frame(t(spectra(spc))), lp, ~.x[.y])
-  Dp <- map2_dbl(as.data.frame(t(spectra(D1))), lp, ~.x[.y])
-  lp <- wavelength(spc)[lp]
-
-  names(Rp) <- NULL
-  names(Dp) <- NULL
-
-  return(list(Rp = Rp, lp = lp, Dp = Dp))
-}
-
-
-
-.calc_REP_multi <- function(spc){
-  wl <- wavelength(spc)
-  wl_sub_flag <- wl >= 680 & wl <= 750
-  wl_sub <- wl[wl_sub_flag]
-  n <- length(wl_sub)
-  Raw_spec <- spectra(spc)[,wl_sub_flag]
-  D1_spec <- spectra(derivative.speclib(spc, m = 1,
-                                        method = 'sgolay', n = 21))[,wl_sub_flag]
-  D2_spec <- spectra(derivative.speclib(spc, m = 2,
-                                        method = 'sgolay', n = 21))[,wl_sub_flag]
-
-  .REP_multi_apply <- function(i, n, wl_sub, Raw_spec, D1_spec, D2_spec){
-    # incase
-    i <- i[1]
-    lp <- c()
-    Rp <- c()
-    Dp <- c()
-
-    for(j in 3:(n-2)){
-      if(D2_spec[i, j-2] > 0 &
-         D2_spec[i, j-1] > 0 &
-         D2_spec[i, j+1] <= 0 &
-         D2_spec[i, j+2] <= 0){
-
-        lp <- c(lp, wl_sub[j])
-        Rp <- c(Rp, Raw_spec[i,j])
-        Dp <- c(Dp, D1_spec[i,j])
-
-        D2_spec[i, 1:j] <- -9999 # to exclude the j+1 channel
-      }
-    }
-
-    if(length(lp) < 1){
-      lp <- NA
-      Rp <- NA
-      Dp <- NA
-    }
-
-    # if(length(lp == 1)){
-    #   lp <- c(lp, NA)
-    #   Rp <- c(Rp, NA)
-    #   Dp <- c(Dp, NA)
-    # }
-
-    if(length(lp) > 2) {
-      print(i)
-      print(lp)
-      print('more than 2 lp are founded!!!')
-    }
-
-    c(lp1 = lp[1], lp2 = lp[2], Rp1 = Rp[1], Rp2 = Rp[2], Dp1 = Dp[1], Dp2 = Dp[2])
-
-  }
-
-  ids <- 1:nspectra(spc1nm)
-  names(ids) <- ids
-
-  map_df(ids, .REP_multi_apply, n, wl_sub, Raw_spec, D1_spec, D2_spec)
-}
-
 

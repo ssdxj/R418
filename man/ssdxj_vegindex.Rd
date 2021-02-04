@@ -2,18 +2,18 @@
 % Please edit documentation in R/calcVI.R
 \name{ssdxj_vegindex}
 \alias{ssdxj_vegindex}
-\title{vegetion index calculation handler}
+\title{lapply wrapper for hsdar::vegetation index}
 \usage{
 ssdxj_vegindex(index, spc, weighted = FALSE, ...)
 }
 \arguments{
-\item{index:}{name of index, used to match function}
+\item{index:}{name of index}
 
 \item{spc:}{the speclib obj}
 }
 \value{
-the index value (vector)
+numeric vector of VI values
 }
 \description{
-vegetion index calculation handler
+lapply wrapper for hsdar::vegetation index
 }

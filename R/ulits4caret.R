@@ -1,5 +1,17 @@
 # train wrapper -----------------------------------------------------------
 
+#' helper for \code{stop()} function
+#'
+#' @param e error obj
+#' @param msg additional msg
+#'
+#' @return NULL
+.print_error <- function(e, msg) {
+  print(msg)
+  print(e)
+  return(NULL)
+}
+
 #' caret::train wrapper to fit biochemphy~index curve
 #'
 #' @param index the index name for ssdxj_vegindex
@@ -37,21 +49,13 @@ do_caret_VI <- function(index, spc, biochemphy, fun_indexCV = get_indexCV) {
 
   if(!isReverse){ # positive correlation with bear
     set.seed(seed)
+    msg_stop <- sprintf("Stop in bear fit for index %s!!!", index)
+    msg_error <- sprintf("Error in bear fit for index %s!!!", index)
     fit <- tryCatch(
       caret::train(y~x, data = df_inTrain, method = modelInfo_bear(),
                    trControl = tr),
-      stop = function(e) {
-        msg <- sprintf("Stop in bear fit for index %s!!!", index)
-        print(msg)
-        print(e)
-        return(NULL)
-      },
-      error = function(e) {
-        msg <- sprintf("Error in bear fit for index %s!!!", index)
-        print(msg)
-        print(e)
-        return(NULL)
-      }
+      stop = .print_error(e, msg_stop),
+      error = .print_error(e, msg_error)
     )
     if(!is.null(fit)) fit$method <- 'bear'
   } else { # negtive corelation with bearReversed
@@ -59,18 +63,8 @@ do_caret_VI <- function(index, spc, biochemphy, fun_indexCV = get_indexCV) {
     fit <- tryCatch(
       caret::train(y~x, data = df_inTrain, method = modelInfo_bearReverse(),
                    trControl = tr),
-      stop = function(e) {
-        msg <- sprintf("Stop in bear fit for index %s!!!", index)
-        print(msg)
-        print(e)
-        return(NULL)
-      },
-      error = function(e) {
-        msg <- sprintf("Error in bear fit for index %s!!!", index)
-        print(msg)
-        print(e)
-        return(NULL)
-      }
+      stop = .print_error(e, msg_stop),
+      error = .print_error(e, msg_error)
     )
     if(!is.null(fit)) fit$method <- 'bearReverse'
   }
