@@ -384,6 +384,51 @@ ssdxj_rededge_apply <- function(i, x, D1, D2) {
 }
 
 
+
+# others ------------------------------------------------------------------
+
+#' resample spc_sim tospc_obs spectra resolution
+#'
+#' @param spc_sim
+#' @param spc_obs
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spc_resample <- function(spc_sim, spc_obs){
+  hsdar::spectralResampling(spc_sim, data.frame(
+    fwhm = hsdar::fwhm(spc_obs),
+    center = hsdar::wavelength(spc_obs)
+  ))
+}
+
+#' add gaussian noise to a speclib
+#'
+#' @param spc_sim
+#' @param noise_base
+#' @param noise_level
+#'
+#' @return
+#' @export
+#'
+#' @examples
+spc_addNoise <- function(spc_sim, noise_base, noise_level = 0.04){
+
+
+  if(nbands(spc_sim) != length(noise_base)) stop("Bands not match!!!")
+  q <- hsdar::nbands(spc_sim)
+  p <- hsdar::nspectra(spc_sim)
+  noise_sd <- noise_base * noise_level
+
+  noise_matirx <- lapply(seq_len(p), function(i){rnorm(n = q, mean = 0, sd = noise_sd)})
+  noise_matirx <- do.call(rbind, noise_matirx)
+
+  hsdar::spectra(spc_sim) <- hsdar::spectra(spc_sim) + noise_matirx
+
+  spc_sim
+}
+
 # depresed ----------------------------------------------------------------
 
 # spc_2df4plot <- function(spc) {
