@@ -217,7 +217,7 @@ spc_2df_withMask <- function(spc){
   if (inherits(spc, 'data.frame')) return(spc)
   df <- spc_2df(spc)
 
-  masks <- mask(spc)
+  masks <- hsdar::mask(spc)
   if(!is.null(masks)){
     wl_missing <- c()
     # geneate the wavelength to fill in by step of 5nm
