@@ -248,8 +248,14 @@ spc_2dfB <- function(spc){
   colnames(df_spectra) <- paste('B', wavelength(spc), sep = '_')
   df_spectra <- as_tibble(df_spectra)
 
-  bind_cols(df_meta, df_spectra) %>% as_tibble()
 
+  if(ncol(df_meta) > 0){
+    out <- bind_cols(df_meta, df_spectra) %>% as_tibble()
+  } else { # case no meta
+    out <- df_spectra
+  }
+
+  return(out)
 }
 
 
